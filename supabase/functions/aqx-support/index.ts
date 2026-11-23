@@ -280,7 +280,7 @@ Deno.serve(async (req: Request) => {
         "التفاصيل: " + details,
         "وسيلة الرد: " + (contact || "غير متوفرة"),
         "رابط الصفحة: " + (pageUrl || "غير محدد"),
-        autoResponse.status === "answered" ? "حالة الرد الآلي: تم إنشاء رد AI ونشره للمستخدم." : "حالة الرد الآلي: تعذر إنشاء رد AI، ويلزم تدخل فريق الدعم.",
+        autoResponse.status === "answered" ? (aiResult.fallback ? "حالة الرد الآلي: تم إرسال رد آلي أولي للمستخدم." : "حالة الرد الآلي: تم إنشاء رد AI ونشره للمستخدم.") : "حالة الرد الآلي: تعذر إرسال الرد الآلي، ويلزم تدخل فريق الدعم.",
         "إدارة البلاغات: " + ADMIN_URL
       ].join("\n");
       const [telegramStatus, emailStatus] = await Promise.all([
