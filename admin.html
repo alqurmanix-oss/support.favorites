@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#6d4bd1"><title>إدارة بلاغات الدعم — AQX Favorites</title>
+<style>
+:root{font-family:Tahoma,Arial,sans-serif;color:#25213a;background:#f7f6fb}
+*{box-sizing:border-box}body{margin:0}header{background:#fff;border-bottom:1px solid #ece8f3;padding:18px max(18px,calc((100% - 1100px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{font-weight:800;color:#6d4bd1}main{max-width:1100px;margin:28px auto;padding:0 18px}
+.card{background:#fff;border:1px solid #ece8f3;border-radius:16px;padding:20px;box-shadow:0 8px 28px rgba(38,26,74,.04);margin-bottom:18px}
+h1{font-size:22px;margin:0 0 12px}h2{font-size:17px;margin:0 0 12px}
+label{display:block;font-size:13px;font-weight:700;margin:12px 0 6px}
+input,textarea{width:100%;border:1px solid #e5e0ee;border-radius:10px;padding:12px;font:inherit;font-size:13px}
+textarea{min-height:130px;resize:vertical}
+button{border:0;border-radius:10px;padding:11px 16px;background:#6d4bd1;color:#fff;font:inherit;font-weight:700;cursor:pointer}
+button:disabled{opacity:.6;cursor:wait}.muted{color:#777187;font-size:13px;line-height:1.8}
+.error{color:#b42318}.success{color:#18794e}
+.layout{display:grid;grid-template-columns:minmax(280px,390px) 1fr;gap:18px}
+.ticket{border:1px solid #eee9f5;border-radius:12px;padding:12px;margin:8px 0;cursor:pointer}
+.ticket:hover{border-color:#a997dc;background:#fbfaff}.ticket strong{display:block;margin-bottom:5px}
+.ticket small{color:#777187}.status{color:#6d4bd1;font-weight:700}
+.reply{padding:12px 0;border-top:1px solid #eee9f5;line-height:1.8;white-space:pre-wrap}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+[hidden]{display:none!important}
+@media(max-width:760px){.layout{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}}
+</style></head>
+<body>
+<header><div class="brand">AQX Favorites — مركز الدعم</div><div class="toolbar"><span id="admin-label" class="muted"></span><button id="logout" type="button" hidden>تسجيل الخروج</button></div></header>
+<main>
+<section class="card" id="login-card">
+<h1>دخول فريق الدعم</h1><p class="muted">سجّل الدخول بحساب AQX المصرّح له بإدارة المنظومة. لن يتم قبول الحسابات غير المعتمدة كمسؤولي AQX.</p>
+<form id="login-form"><label for="email">البريد الإلكتروني</label><input id="email" type="email" required autocomplete="username">
+<label for="password">كلمة المرور</label><input id="password" type="password" required autocomplete="current-password">
+<button id="login-button" type="submit">تسجيل الدخول</button><p id="login-error" class="error" aria-live="polite"></p></form>
+</section>
+<section id="dashboard" hidden>
+<div class="toolbar" style="justify-content:space-between;margin-bottom:14px"><h1>بلاغات AQX Favorites</h1><button id="refresh" type="button">تحديث القائمة</button></div>
+<div class="layout">
+<section class="card"><h2>قائمة البلاغات</h2><div id="ticket-list" class="muted">جارٍ تحميل البلاغات...</div></section>
+<section class="card"><div id="ticket-detail" class="muted">اختر بلاغًا من القائمة لعرض التفاصيل والرد عليه.</div></section>
+</div></section>
+</main>
+<script>
+(function(){
+ const API='https://vuszqzgldbsscuxdfhdz.supabase.co/functions/v1/aqx-support';
+ const ID='https://fkiokwwztbyztleeuwks.supabase.co';
+ const KEY='sb_publishable_4DCXObCqPUoNnI8ANOo8dA_nRAg0y5_';
+ let accessToken=sessionStorage.getItem('aqx_support_admin_access')||'';
+ let selectedId=null;
+ const $=id=>document.getElementById(id);
+ async function call(path,options={}){
+   const response=await fetch(API+path,{...options,headers:{'Content-Type':'application/json','Authorization':'Bearer '+accessToken,...(options.headers||{})},cache:'no-store'});
+   const data=await response.json().catch(()=>({}));
+   if(!response.ok||data.ok===false)throw new Error(data.error||'تعذر تنفيذ الطلب');
+   return data;
+ }
+ async function checkSession(){
+   if(!accessToken)return false;
+   try{await call('/admin/list',{method:'POST',body:JSON.stringify({limit:1})});return true}catch{accessToken='';sessionStorage.removeItem('aqx_support_admin_access');return false}
+ }
+ async function login(event){
+   event.preventDefault();$('login-error').textContent='';$('login-button').disabled=true;
+   try{
+     const response=await fetch(ID+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify({email:$('email').value.trim(),password:$('password').value})});
+     const data=await response.json().catch(()=>({}));
+     if(!response.ok||!data.access_token)throw new Error('تعذر تسجيل الدخول. تحقق من البريد وكلمة المرور.');
+     accessToken=data.access_token;sessionStorage.setItem('aqx_support_admin_access',accessToken);
+     await loadDashboard();
+   }catch(error){accessToken='';sessionStorage.removeItem('aqx_support_admin_access');$('login-error').textContent=error.message}
+   finally{$('login-button').disabled=false}
+ }
+ async function loadDashboard(){
+   const data=await call('/admin/list',{method:'POST',body:JSON.stringify({limit:100})});
+   $('login-card').hidden=true;$('dashboard').hidden=false;$('logout').hidden=false;
+   $('admin-label').textContent='جلسة إدارة موثقة';renderTickets(data.tickets||[]);
+ }
+ function renderTickets(tickets){
+   const root=$('ticket-list');root.textContent='';
+   if(!tickets.length){root.textContent='لا توجد بلاغات حتى الآن.';return}
+   tickets.forEach(ticket=>{
+     const item=document.createElement('div');item.className='ticket';
+     const title=document.createElement('strong');title.textContent=ticket.ticket_number+' — '+(ticket.custom_category||ticket.category);
+     const meta=document.createElement('small');meta.textContent=new Date(ticket.created_at).toLocaleString('ar-EG')+' · '+ticket.reporter_name+' · '+ticket.status;
+     item.append(title,meta);item.addEventListener('click',()=>loadTicket(ticket.id));root.appendChild(item);
+   });
+ }
+ async function refresh(){try{const d=await call('/admin/list',{method:'POST',body:JSON.stringify({limit:100})});renderTickets(d.tickets||[])}catch(e){$('ticket-list').textContent='تعذر تحديث القائمة. '+e.message}}
+ async function loadTicket(id){
+   selectedId=id;$('ticket-detail').textContent='جارٍ تحميل تفاصيل البلاغ...';
+   try{
+     const data=await call('/admin/ticket/'+id,{method:'GET'});
+     const root=$('ticket-detail');root.textContent='';
+     const h=document.createElement('h2');h.textContent=data.ticket.ticket_number+' — '+(data.ticket.custom_category||data.ticket.category);root.appendChild(h);
+     const add=(label,value)=>{const p=document.createElement('p');p.className='muted';p.textContent=label+': '+(value||'غير متوفر');root.appendChild(p)};
+     add('الحالة',data.ticket.status);add('اسم المبلّغ',data.ticket.reporter_name);add('وسيلة الرد',data.ticket.reply_contact);add('تاريخ البلاغ',new Date(data.ticket.created_at).toLocaleString('ar-EG'));add('العنوان',data.ticket.subject);add('التفاصيل',data.ticket.details);add('رابط الصفحة',data.ticket.page_url);add('حالة الرد الذكي',data.ticket.ai_status+' — '+(data.ticket.ai_failure_reason||''));
+     const replies=document.createElement('div');(data.replies||[]).forEach(r=>{const p=document.createElement('div');p.className='reply';p.textContent=(r.author_label||'فريق الدعم')+' · '+new Date(r.created_at).toLocaleString('ar-EG')+'\n'+r.body;replies.appendChild(p)});root.appendChild(replies);
+     const form=document.createElement('form');form.innerHTML='<label for="support-reply">الرد على صاحب البلاغ</label><textarea id="support-reply" required minlength="2" maxlength="10000" placeholder="اكتب ردًا واضحًا ومباشرًا..."></textarea><button type="submit">حفظ الرد وإرساله</button><p class="muted" id="reply-feedback"></p>';
+     form.addEventListener('submit',async e=>{e.preventDefault();const btn=form.querySelector('button');btn.disabled=true;try{const result=await call('/admin/reply/'+id,{method:'POST',body:JSON.stringify({reply:form.querySelector('textarea').value})});$('reply-feedback').textContent='تم حفظ الرد. إشعار داخل التطبيق: '+result.delivery.in_app+' · البريد: '+result.delivery.email;form.querySelector('textarea').value='';await loadTicket(id);await refresh()}catch(err){$('reply-feedback').textContent='تعذر حفظ الرد: '+err.message}finally{btn.disabled=false}});
+     root.appendChild(form);
+   }catch(e){$('ticket-detail').textContent='تعذر تحميل البلاغ: '+e.message}
+ }
+ $('login-form').addEventListener('submit',login);$('refresh').addEventListener('click',refresh);
+ $('logout').addEventListener('click',()=>{accessToken='';sessionStorage.removeItem('aqx_support_admin_access');$('dashboard').hidden=true;$('login-card').hidden=false;$('logout').hidden=true;$('admin-label').textContent=''});
+ checkSession().then(ok=>{if(ok)loadDashboard().catch(()=>{})});
+})();
+</script></body></html>
