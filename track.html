@@ -46,12 +46,7 @@ footer{text-align:center;padding:14px;color:#a09bad;font-size:10px}
 <main><section class="card">
 <div class="eyebrow">AQX · SUPPORT CENTER</div>
 <h1>تفاصيل الشكوى</h1>
-<form id="track-form">
-<p>أدخل رقم البلاغ ورمز المتابعة لعرض تفاصيل الشكوى وحالتها وردود فريق الدعم.</p>
-<label for="track-ticket">رقم البلاغ</label><input id="track-ticket" required autocomplete="off" placeholder="AQXF-YYMMDD-XXXXXXXX">
-<label for="track-token">رمز المتابعة</label><input id="track-token" required autocomplete="off" placeholder="أدخل رمز المتابعة">
-<button id="track-submit" class="primary" type="submit">عرض تفاصيل الشكوى</button>
-</form>
+<p id="track-hint">يتم عرض تفاصيل الشكوى عند فتحها من جدول «شكاواي السابقة».</p>
 <section id="ticket-view" class="summary" hidden aria-live="polite">
 <h2 id="ticket-subject">تفاصيل الشكوى</h2>
 <div class="meta"><span id="ticket-number"></span><span id="ticket-date"></span><span id="ticket-status" class="status"></span></div>
@@ -67,10 +62,10 @@ footer{text-align:center;padding:14px;color:#a09bad;font-size:10px}
 'use strict';
 const API='https://vuszqzgldbsscuxdfhdz.supabase.co/functions/v1/aqx-support';
 const SELECTED='aqx_support_selected_ticket_v1';
-const labels={received:'تم الاستلام',in_review:'قيد المراجعة',waiting_user:'بانتظار ردك',answered:'تم الرد',resolved:'تم الحل',closed:'مغلق'};
-const form=document.getElementById('track-form'),button=document.getElementById('track-submit'),view=document.getElementById('ticket-view'),error=document.getElementById('track-error');
+const labels={received:'لم يتم الرد',in_review:'مراجعة',waiting_user:'بانتظار ردك',answered:'تم الرد',resolved:'تم الحل',closed:'مغلق'};
+const button={disabled:false},view=document.getElementById('ticket-view'),error=document.getElementById('track-error');
 async function showTicket(number,token){
- error.hidden=true;view.hidden=true;button.disabled=true;button.textContent='جارٍ تحميل الشكوى...';
+ error.hidden=true;view.hidden=true;
  try{
   const r=await fetch(API+'/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket_number:number,tracking_token:token}),cache:'no-store'});
   const d=await r.json().catch(()=>({}));if(!r.ok||d.ok!==true||!d.ticket)throw new Error('تعذر العثور على الشكوى. راجع رقم البلاغ ورمز المتابعة.');
@@ -84,14 +79,12 @@ async function showTicket(number,token){
   if(Array.isArray(d.replies)&&d.replies.length){
    d.replies.forEach(item=>{const article=document.createElement('article');article.className='reply';const author=document.createElement('strong');author.textContent=(item.author_label||'فريق AQX')+' · '+new Date(item.created_at).toLocaleString('ar-EG');const body=document.createElement('p');body.textContent=item.body||'';article.append(author,body);list.append(article)});
   }else{const empty=document.createElement('p');empty.className='empty';empty.textContent='لم يضف فريق الدعم ردًا حتى الآن. ستظهر الردود هنا عند إضافتها.';list.append(empty)}
-  view.hidden=false;form.hidden=true;
+  view.hidden=false;document.getElementById('track-hint').hidden=true;
  }catch(e){error.textContent=e.message||'حدث خطأ أثناء تحميل الشكوى.';error.hidden=false}
- finally{button.disabled=false;button.textContent='عرض تفاصيل الشكوى'}
 }
-form.addEventListener('submit',event=>{event.preventDefault();if(!form.reportValidity())return;showTicket(document.getElementById('track-ticket').value.trim(),document.getElementById('track-token').value.trim())});
 try{
  const saved=JSON.parse(sessionStorage.getItem(SELECTED)||'null');
- if(saved&&saved.ticket_number&&saved.tracking_token){document.getElementById('track-ticket').value=saved.ticket_number;document.getElementById('track-token').value=saved.tracking_token;showTicket(saved.ticket_number,saved.tracking_token)}
+ if(saved&&saved.ticket_number&&saved.tracking_token){showTicket(saved.ticket_number,saved.tracking_token)}
 }catch{}
 })();
 </script>
