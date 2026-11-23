@@ -8,12 +8,15 @@
 <title>الإبلاغ عن مشكلة — AQX Favorites</title>
 <style>
 :root{font-family:Tahoma,Arial,sans-serif;color:#25213a;background:#f8f7fc}
-html,body{display:block!important;visibility:visible!important;opacity:1!important;min-height:100%;width:100%;margin:0;overflow-x:hidden}
+html,body{display:block!important;visibility:visible!important;opacity:1!important;min-height:100%;width:100%;max-width:100%;margin:0;overflow-x:clip;overscroll-behavior-x:none}
+*,*::before,*::after{box-sizing:border-box;min-width:0}
+img,svg,video,canvas{max-width:100%}
+input,select,textarea,button{max-width:100%}
 body{background:#f8f7fc;background:linear-gradient(145deg,#f8f7fc,#f1edfc)}
 *{box-sizing:border-box}
-header{padding:22px 20px;background:#fff;border-bottom:1px solid #eeebf5;display:flex;align-items:center;justify-content:space-between;gap:16px}
-.brand{font-weight:800;color:#6d4bd1;font-size:19px}.tag{font-size:12px;color:#858198}
-main{display:block!important;visibility:visible!important;max-width:760px;margin:48px auto;padding:0 20px}
+header{width:100%;min-width:0;padding:22px 20px;background:#fff;border-bottom:1px solid #eeebf5;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px}
+.brand{min-width:0;font-weight:800;color:#6d4bd1;font-size:19px}.tag{min-width:0;font-size:12px;color:#858198;overflow-wrap:anywhere}
+main{display:block!important;visibility:visible!important;width:100%;min-width:0;max-width:760px;margin:48px auto;padding:0 20px}
 .card{display:block!important;visibility:visible!important;background:#fff;border:1px solid #eeebf5;border-radius:22px;padding:28px;box-shadow:0 12px 34px rgba(48,34,91,.06)}
 .eyebrow{color:#7654db;font-size:12px;font-weight:700}h1{font-size:27px;margin:12px 0}
 .intro{color:#777187;line-height:1.9;margin:0 0 22px}
@@ -39,7 +42,7 @@ button:disabled{opacity:.65;cursor:wait}
 .whatsapp-btn svg{width:21px;height:21px;flex:0 0 21px}
 .whatsapp-note{font-size:11px;color:#777187;line-height:1.8;text-align:center;margin:8px 0 0}
 .help{font-size:11px;color:#9993aa;line-height:1.8;margin-top:12px}
-main{max-width:680px;margin:22px auto;padding:0 16px}
+main{width:100%;max-width:680px;margin:22px auto;padding:0 16px}
 .card{padding:22px}
 @media(max-width:600px){main{margin:12px auto;padding:0 12px}.card{padding:17px}h1{font-size:22px}textarea{min-height:95px}}
 a{color:#6d4bd1;text-decoration:none;font-weight:700}.back{display:inline-block;margin-top:22px}
