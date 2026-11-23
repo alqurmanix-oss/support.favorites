@@ -14,7 +14,6 @@ main{max-width:760px;margin:48px auto;padding:0 20px}
 .card{background:#fff;border:1px solid #eeebf5;border-radius:22px;padding:28px;box-shadow:0 12px 34px rgba(48,34,91,.06)}
 .eyebrow{color:#7654db;font-size:12px;font-weight:700}h1{font-size:27px;margin:12px 0}
 .intro{color:#777187;line-height:1.9;margin:0 0 22px}
-.notice{padding:14px 16px;border-radius:13px;background:#fff8e9;border:1px solid #f4dfb2;color:#805b16;font-size:13px;line-height:1.9;margin:18px 0}
 label{display:block;font-size:12px;font-weight:700;margin:15px 0 7px}
 input,select,textarea{width:100%;padding:12px;border:1px solid #e8e4f0;border-radius:11px;font:inherit;font-size:13px;background:#fff;color:#25213a}
 textarea{min-height:130px;resize:vertical}
@@ -32,10 +31,25 @@ footer{text-align:center;color:#a09bad;font-size:11px;padding:30px}
 <div class="eyebrow">AQX · TECHNICAL SUPPORT</div>
 <h1>🐞 الإبلاغ عن مشكلة</h1>
 <p class="intro">ساعدنا في تحسين AQX Favorites. جهّز وصفًا واضحًا للمشكلة والخطوات التي أدت إلى ظهورها، حتى يتمكن فريق الدعم من فهمها ومتابعتها.</p>
-<div class="notice"><strong>تنبيه:</strong> نموذج البلاغ قيد التجهيز، ولم يتم ربطه بعد بخدمة استقبال البلاغات. لذلك لن يتم إرسال أو حفظ أي بيانات من هذه الصفحة حاليًا.</div>
 <form>
 <label for="category">نوع المشكلة</label>
-<select id="category" disabled><option>اختر نوع المشكلة</option><option>تسجيل الدخول أو الوصول</option><option>حفظ رابط أو مزامنته</option><option>عرض أو أداء الصفحة</option><option>مشكلة أمنية أو خصوصية</option><option>أخرى</option></select>
+<select id="category" name="category">
+<option value="">اختر نوع المشكلة</option>
+<option value="account">التسجيل أو تسجيل الدخول</option>
+<option value="saving">حفظ الروابط أو حذفها</option>
+<option value="sync">المزامنة أو نقل المحفوظات</option>
+<option value="display">عرض الصفحة أو التنسيق</option>
+<option value="performance">البطء أو الأداء</option>
+<option value="search">البحث أو الوصول إلى الروابط</option>
+<option value="reviews">التقييمات أو المراجعات</option>
+<option value="security">الأمان أو الخصوصية</option>
+<option value="notifications">الإشعارات</option>
+<option value="other">أخرى</option>
+</select>
+<div id="other-category-wrap" hidden>
+<label for="other-category">اكتب نوع المشكلة</label>
+<input id="other-category" name="other_category" type="text" placeholder="اكتب نوع المشكلة">
+</div>
 <label for="subject">عنوان البلاغ</label>
 <input id="subject" type="text" placeholder="اكتب عنوانًا مختصرًا للمشكلة" disabled>
 <label for="details">تفاصيل المشكلة</label>
@@ -45,6 +59,20 @@ footer{text-align:center;color:#a09bad;font-size:11px;padding:30px}
 <button type="button" disabled>إرسال البلاغ — غير متاح حاليًا</button>
 <p class="help">سيتم تفعيل النموذج بعد ربطه بواجهة آمنة لاستقبال البلاغات، مع توضيح سياسة التعامل مع البيانات والمرفقات قبل الإرسال.</p>
 </form>
+<script>
+(function(){
+  const category = document.getElementById('category');
+  const otherWrap = document.getElementById('other-category-wrap');
+  const otherInput = document.getElementById('other-category');
+  category.addEventListener('change', function(){
+    const showOther = category.value === 'other';
+    otherWrap.hidden = !showOther;
+    otherInput.required = showOther;
+    if (!showOther) otherInput.value = '';
+    if (showOther) otherInput.focus();
+  });
+})();
+</script>
 <a class="back" href="https://favorites.alqurmanix.com/guest/">العودة إلى AQX Favorites ←</a>
 </section>
 </main>
