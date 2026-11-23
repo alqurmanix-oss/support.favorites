@@ -112,7 +112,7 @@ footer{text-align:center;color:#a09bad;font-size:11px;padding:30px}
     const payload={
       category:category.value,other_category:otherInput.value.trim(),
       subject:document.getElementById('subject').value.trim(),
-      details:'عنوان البلاغ: '+document.getElementById('subject').value.trim()+'\\n\\n'+document.getElementById('details').value.trim(),
+      details:document.getElementById('details').value.trim(),
       contact:document.getElementById('contact').value.trim(),
       page_url:window.location.href,website:document.getElementById('website').value
     };
