@@ -110,87 +110,52 @@ async function sendEmail(to: string, subject: string, text: string) {
 }
 
 
-async function generateSupportReply(input: { name: string; category: string; subject: string; details: string; pageUrl: string }) {
-  const fallbackReply = () => {
-    const category = input.category.toLowerCase();
-    let guidance = "جرّب تحديث الصفحة ثم إعادة المحاولة، ودوّن وقت ظهور المشكلة وأي رسالة خطأ كما ظهرت.";
-    if (/account|حساب/.test(category)) guidance = "تأكد من استخدام وسيلة الدخول المرتبطة بحسابك، ولا تشارك كلمة المرور أو رموز التحقق مع أي شخص.";
-    else if (/saving|حفظ/.test(category)) guidance = "لا تحذف بيانات التطبيق أو المتصفح قبل التأكد من مزامنة محفوظاتك. جرّب إعادة تحميل الصفحة وتحقق من ظهور العنصر في المكتبة مرة أخرى.";
-    else if (/sync|مزامنة/.test(category)) guidance = "تحقق من اتصال الإنترنت، وافتح AQX Favorites من جديد، وانتظر اكتمال المزامنة قبل تكرار العملية.";
-    else if (/display|عرض/.test(category)) guidance = "أعد تحميل الصفحة، وتحقق من إعدادات تكبير المتصفح، ثم جرّب فتح الصفحة في تبويب جديد.";
-    else if (/performance|أداء/.test(category)) guidance = "أعد تحميل الصفحة وأغلق التبويبات غير الضرورية، ثم جرّب مرة أخرى مع تسجيل نوع الجهاز والمتصفح.";
-    else if (/search|بحث/.test(category)) guidance = "جرّب كلمة بحث أقصر أو عبارة مميزة من العنوان، وتأكد من إزالة أي مسافات زائدة.";
-    else if (/reviews|مراجع|تقييم/.test(category)) guidance = "تحقق من اتصال الإنترنت ثم أعد فتح صفحة التقييم. احتفظ بنص المراجعة قبل إعادة الإرسال لتجنب فقدانه.";
-    else if (/security|أمان/.test(category)) guidance = "لا تشارك كلمة المرور أو رموز التحقق أو روابط استعادة الحساب. إذا لاحظت نشاطًا غير معتاد، أمّن بريدك المرتبط بالحساب أولًا.";
-    else if (/notifications|إشعار/.test(category)) guidance = "راجع إعدادات الإشعارات في الجهاز والمتصفح، وتأكد من السماح بالإشعارات للموقع.";
-    else if (/other|أخرى/.test(category)) guidance = "أرسل لفريق الدعم نص رسالة الخطأ والخطوات التي سبقت ظهور المشكلة، مع نوع الجهاز والمتصفح إن أمكن.";
-    return "أهلًا " + input.name + "، شكرًا لإرسال بلاغك بعنوان: «" + input.subject + "».\n\n" +
-      "تم استلام البلاغ وحفظ تفاصيله، وهذا رد آلي أولي لمساعدتك:\n" + guidance + "\n\n" +
-      "إذا استمرت المشكلة، لا تكرر إرسال البلاغ؛ سيظل البلاغ المسجل متاحًا لفريق دعم AQX لمراجعته. يمكنك متابعة أي تحديث من صفحة متابعة البلاغ.\n\n" +
-      "تنبيه أمني: لا ترسل كلمات مرور أو رموز تحقق أو مفاتيح سرية.";
-  };
-  const apiKey = Deno.env.get("AQX_TTS_API_KEY") || "";
-  if (!apiKey) return { ok: true as const, answer: fallbackReply(), model: "aqx-support-automatic-fallback", fallback: true };
-  const base = (Deno.env.get("AQX_TTS_BASE_URL") || "https://api.openai.com/v1").replace(/\/+$/, "");
-  const headers = { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" };
-  let model = Deno.env.get("AQX_SUPPORT_AI_MODEL") || Deno.env.get("AQX_CHAT_MODEL") || "";
-  if (!model) {
-    try {
-      const modelsResponse = await fetch(base + "/models", { headers: { Authorization: "Bearer " + apiKey }, signal: AbortSignal.timeout(7000) });
-      if (modelsResponse.ok) {
-        const catalog = await modelsResponse.json().catch(() => ({}));
-        const models = Array.isArray(catalog.data) ? catalog.data.map((x: any) => String(x.id || "")) : [];
-        model = models.find((id: string) => id && !/(tts|transcri|whisper|embedding|audio|speech|moderation|image|realtime)/i.test(id)) || "";
-      }
-    } catch {}
+function generateSupportReply(input: { name: string; category: string; subject: string; details: string; pageUrl: string }) {
+  const category = input.category.toLowerCase();
+  let diagnosis = "";
+  let steps: string[] = [];
+  let followup = "إذا استمرت المشكلة، أرسل نوع الجهاز والمتصفح والخطوات التي أدت إلى ظهورها، مع نص رسالة الخطأ إن وجدت.";
+  if (/^account$|حساب/.test(category)) {
+    diagnosis = "قد تكون المشكلة مرتبطة بتسجيل الدخول أو التحقق من جلسة الحساب.";
+    steps = ["تأكد من استخدام وسيلة الدخول المرتبطة بحسابك.", "أعد تحميل الصفحة ثم سجّل الدخول مرة أخرى إذا طُلب منك ذلك.", "لا تشارك كلمة المرور أو رموز التحقق مع أي شخص."];
+  } else if (/^saving$|حفظ/.test(category)) {
+    diagnosis = "قد تتعلق المشكلة بحفظ العنصر أو تحديث المكتبة بعد الحفظ.";
+    steps = ["تحقق من اتصال الإنترنت.", "أعد تحميل المكتبة وابحث عن العنصر في المحفوظات.", "لا تمسح بيانات المتصفح أو التطبيق قبل التأكد من مزامنة محفوظاتك."];
+  } else if (/^sync$|مزامنة/.test(category)) {
+    diagnosis = "قد يكون تأخر المزامنة ناتجًا عن انقطاع الاتصال أو عدم اكتمال تحديث المكتبة.";
+    steps = ["تأكد من استقرار اتصال الإنترنت.", "افتح المكتبة واترك الصفحة حتى يكتمل التحميل.", "أعد فتح AQX Favorites وتحقق من ظهور آخر التغييرات."];
+  } else if (/^display$|عرض/.test(category)) {
+    diagnosis = "قد تكون المشكلة ناتجة عن تنسيق العرض أو أبعاد نافذة المتصفح.";
+    steps = ["اضبط تكبير المتصفح على 100%.", "أعد تحميل الصفحة.", "جرّب فتح الصفحة في تبويب جديد، وتحقق مما إذا كانت المشكلة تظهر في صفحات أخرى."];
+  } else if (/^performance$|أداء/.test(category)) {
+    diagnosis = "قد تكون المشكلة مرتبطة بأداء المتصفح أو تحميل عناصر الصفحة أو تنسيقها.";
+    steps = ["أعد تحميل الصفحة.", "اضبط تكبير المتصفح على 100% وأغلق التبويبات غير الضرورية.", "جرّب متصفحًا آخر إن أمكن، ولاحظ هل تتحرك الصفحة أفقيًا في كل الصفحات أم صفحة بعينها."];
+    followup = "إذا استمرت المشكلة، أرسل نوع الجهاز واسم المتصفح، وحدد هل اهتزاز الصفحة أو تحركها يحدث في كل الصفحات أم في صفحة محددة.";
+  } else if (/^search$|بحث/.test(category)) {
+    diagnosis = "قد تتأثر نتيجة البحث بصياغة العبارة أو المسافات الزائدة.";
+    steps = ["جرّب كلمة بحث أقصر أو جزءًا مميزًا من العنوان.", "احذف المسافات الزائدة والرموز غير الضرورية.", "أعد المحاولة بعد تحديث الصفحة."];
+  } else if (/^reviews$|مراجع|تقييم/.test(category)) {
+    diagnosis = "قد تتعلق المشكلة بإرسال التقييم أو تحديث حالته بعد الإرسال.";
+    steps = ["تحقق من اتصال الإنترنت.", "احتفظ بنص المراجعة قبل إعادة المحاولة.", "افتح صفحة التقييم مجددًا وتحقق من ظهور التقييم وحالته قبل إرساله مرة أخرى."];
+  } else if (/^security$|أمان/.test(category)) {
+    diagnosis = "نتعامل مع بلاغات الأمان بحذر لحماية حسابك وبياناتك.";
+    steps = ["لا تشارك كلمة المرور أو رموز التحقق أو روابط استعادة الحساب.", "إذا شككت في الوصول غير المصرح به، غيّر كلمة مرور البريد المرتبط بحسابك.", "احتفظ بتوقيت الواقعة وأي رسالة أو نشاط غير معتاد لإرساله لفريق الدعم."];
+    followup = "سيحتاج فريق الدعم إلى وصف ما حدث وتوقيت ظهوره، دون إرسال أي كلمة مرور أو رمز تحقق.";
+  } else if (/^notifications$|إشعار/.test(category)) {
+    diagnosis = "قد تكون الإشعارات محجوبة من إعدادات المتصفح أو الجهاز.";
+    steps = ["راجع إعدادات إشعارات الموقع في المتصفح.", "تأكد من السماح بالإشعارات للتطبيق أو الموقع من إعدادات الجهاز.", "أعد فتح الصفحة بعد تحديث إعدادات الإشعارات."];
+  } else {
+    diagnosis = "تم تسجيل البلاغ، لكن التصنيف الحالي لا يحدد إجراءً فنيًا بعينه.";
+    steps = ["أعد تحميل الصفحة التي ظهرت بها المشكلة.", "دوّن الخطوات التي سبقت ظهور المشكلة.", "احتفظ بنص رسالة الخطأ أو صورة توضح المشكلة إن وجدت."];
+    followup = "يرجى تزويد فريق الدعم بنوع الجهاز والمتصفح والخطوات التي أدت إلى المشكلة حتى يمكن تحديد الإجراء المناسب.";
   }
-  if (!model) model = "gpt-4o-mini";
-  const system = [
-    "أنت مساعد الدعم الفني الرسمي لمنصة AQX Favorites.",
-    "أجب باللغة العربية الواضحة وبأسلوب مهني ودود ومختصر.",
-    "حلل المشكلة المذكورة فقط، وقدّم خطوات عملية آمنة ومحددة.",
-    "لا تدّعِ أنك نفذت إصلاحًا أو غيّرت بيانات أو راجعت حسابًا.",
-    "لا تطلب كلمات مرور أو رموز تحقق أو مفاتيح سرية.",
-    "إذا كانت المعلومات غير كافية، وضّح ما يلزم للتحقق وصعّد الحالة لفريق الدعم.",
-    "لا تخترع روابط أو خصائص غير مؤكدة. لا تذكر أنك نموذج ذكاء اصطناعي."
-  ].join("\n");
-  const user = [
-    "اسم المبلّغ: " + input.name,
-    "التصنيف: " + input.category,
-    "عنوان البلاغ: " + input.subject,
-    "التفاصيل: " + input.details,
-    "رابط الصفحة: " + (input.pageUrl || "غير محدد"),
-    "اكتب ردًا مباشرًا للمستخدم يتضمن التشخيص الأولي والخطوة التالية."
-  ].join("\n");
-  try {
-    const response = await fetch(base + "/chat/completions", {
-      method: "POST", headers,
-      body: JSON.stringify({ model, messages: [{ role: "system", content: system }, { role: "user", content: user }], temperature: 0.2, max_tokens: 650 }),
-      signal: AbortSignal.timeout(25000)
-    });
-    if (!response.ok) {
-      const errorBody = await response.text().catch(() => "");
-      let providerError: any = {};
-      try { providerError = JSON.parse(errorBody)?.error || {}; } catch {}
-      console.error("support_ai_provider_error", JSON.stringify({
-        status: response.status,
-        type: String(providerError.type || "").slice(0, 80),
-        code: String(providerError.code || "").slice(0, 100),
-        message: String(providerError.message || errorBody || "No provider error body").replace(/Bearer\s+\S+/gi, "Bearer [REDACTED]").slice(0, 500),
-        base_host: new URL(base).host,
-        model
-      }));
-      return { ok: true as const, answer: fallbackReply(), model: "aqx-support-automatic-fallback", fallback: true, provider_error: response.status };
-    }
-    const result = await response.json().catch(() => ({}));
-    const raw = result?.choices?.[0]?.message?.content;
-    const answer = typeof raw === "string" ? raw.trim() : Array.isArray(raw) ? raw.map((x: any) => typeof x?.text === "string" ? x.text : "").join("\n").trim() : "";
-    if (answer.length < 20) return { ok: true as const, answer: fallbackReply(), model: "aqx-support-automatic-fallback", fallback: true };
-    return { ok: true as const, answer: answer.slice(0, 9000), model, fallback: false };
-  } catch (error) {
-    console.error("support_ai_request_error", error instanceof Error ? error.name : "unknown");
-    return { ok: true as const, answer: fallbackReply(), model: "aqx-support-automatic-fallback", fallback: true };
-  }
+  return "أهلًا " + input.name + "، شكرًا لتواصلك مع دعم AQX Favorites.\n\n" +
+    "عنوان البلاغ: " + input.subject + "\n\n" +
+    "التشخيص الأولي: " + diagnosis + "\n\n" +
+    "خطوات مقترحة:\n" + steps.map((step, i) => (i + 1) + ". " + step).join("\n") +
+    "\n\n" + followup +
+    "\n\nتم حفظ هذا الرد تلقائيًا على بلاغك. إذا لم تُحل المشكلة بالخطوات السابقة، يظل البلاغ متاحًا لفريق الدعم للمراجعة.\n\n" +
+    "تنبيه أمني: لا ترسل كلمات مرور أو رموز تحقق أو مفاتيح سرية.";
 }
 async function getTicketByAccess(ticketNumber: string, trackingToken: string) {
   if (!ticketNumber || trackingToken.length < 24) throw new ApiError("TRACKING_DETAILS_REQUIRED", 400);
@@ -239,16 +204,16 @@ Deno.serve(async (req: Request) => {
       }).select("id,ticket_number,created_at").single();
       if (error) throw error;
 
-      const aiResult = await generateSupportReply({
+      const autoReply = generateSupportReply({
         name: clean(body.name, 120) || "مستخدم AQX Favorites",
         category: category === "other" ? "أخرى — " + customCategory : category,
         subject, details, pageUrl
       });
       let autoResponse: { status: string; reason?: string; reply_id?: string } = { status: "escalated", reason: "AQX_AI_PROVIDER_UNAVAILABLE" };
-      if (aiResult.ok) {
+      {
         const { data: aiReply, error: aiReplyError } = await db.from("aqx_favorites_support_replies").insert({
-          ticket_id: ticket.id, author_type: "system", author_label: aiResult.fallback ? "الرد الآلي الأولي من AQX Support" : "مساعد AQX الذكي",
-          body: aiResult.answer, visibility: "public"
+          ticket_id: ticket.id, author_type: "system", author_label: "الرد الآلي من AQX Support",
+          body: autoReply, visibility: "public"
         }).select("id,body,created_at").single();
         if (!aiReplyError && aiReply) {
           const { error: aiUpdateError } = await db.from("aqx_favorites_support_tickets").update({
@@ -261,7 +226,7 @@ Deno.serve(async (req: Request) => {
           autoResponse = { status: "escalated", reason: "AQX_AI_REPLY_SAVE_FAILED" };
         }
       } else {
-        autoResponse = { status: "escalated", reason: aiResult.reason };
+        autoResponse = { status: "escalated", reason: "AQX_AUTOMATIC_REPLY_SAVE_FAILED" };
       }
       if (autoResponse.status !== "answered") {
         await db.from("aqx_favorites_support_tickets").update({
@@ -280,7 +245,7 @@ Deno.serve(async (req: Request) => {
         "التفاصيل: " + details,
         "وسيلة الرد: " + (contact || "غير متوفرة"),
         "رابط الصفحة: " + (pageUrl || "غير محدد"),
-        autoResponse.status === "answered" ? (aiResult.fallback ? "حالة الرد الآلي: تم إرسال رد آلي أولي للمستخدم." : "حالة الرد الآلي: تم إنشاء رد AI ونشره للمستخدم.") : "حالة الرد الآلي: تعذر إرسال الرد الآلي، ويلزم تدخل فريق الدعم.",
+        autoResponse.status === "answered" ? "حالة الرد الآلي: تم إنشاء رد تلقائي بقواعد AQX ونشره للمستخدم." : "حالة الرد الآلي: تعذر حفظ الرد التلقائي، ويلزم تدخل فريق الدعم.",
         "إدارة البلاغات: " + ADMIN_URL
       ].join("\n");
       const [telegramStatus, emailStatus] = await Promise.all([
