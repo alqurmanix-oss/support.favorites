@@ -89,8 +89,7 @@ footer{text-align:center;padding:14px;color:#a09bad;font-size:10px}
 <h2>تم إرسال الشكوى بنجاح 💜</h2>
 <p>احتفظ ببيانات البلاغ للرجوع إليه وقراءة رد فريق الدعم.</p>
 <div class="ticket-line"><strong>رقم البلاغ:</strong><span id="result-ticket" class="ticket-value"></span><button class="copy" id="copy-ticket" type="button">نسخ</button></div>
-<div class="ticket-line"><strong>رمز المتابعة:</strong><span id="result-token" class="ticket-value"></span><button class="copy" id="copy-token" type="button">نسخ</button></div>
-<p id="delivery-status"></p>
+
 </section>
 <section class="panel" aria-labelledby="my-tickets-title">
 <h2 id="my-tickets-title">شكاواي السابقة</h2>
@@ -112,7 +111,7 @@ footer{text-align:center;padding:14px;color:#a09bad;font-size:10px}
 const API='https://vuszqzgldbsscuxdfhdz.supabase.co/functions/v1/aqx-support';
 const STORE='aqx_support_my_tickets_v1';
 const SELECTED='aqx_support_selected_ticket_v1';
-const labels={received:'تم الاستلام',in_review:'قيد المراجعة',waiting_user:'بانتظار ردك',answered:'تم الرد',resolved:'تم الحل',closed:'مغلق'};
+const labels={received:'لم يتم الرد',in_review:'مراجعة',waiting_user:'بانتظار ردك',answered:'تم الرد',resolved:'تم الحل',closed:'مغلق'};
 const form=document.getElementById('report-form'),category=document.getElementById('category'),otherWrap=document.getElementById('other-wrap'),otherInput=document.getElementById('other-category');
 const send=document.getElementById('send-report'),result=document.getElementById('submission-result'),tbody=document.getElementById('my-tickets-body');
 const readTickets=()=>{try{const v=JSON.parse(localStorage.getItem(STORE)||'[]');return Array.isArray(v)?v.filter(x=>x&&x.ticket_number&&x.tracking_token).slice(0,30):[]}catch{return []}};
@@ -120,7 +119,6 @@ const saveTickets=items=>{try{localStorage.setItem(STORE,JSON.stringify(items.sl
 const copy=async value=>{try{await navigator.clipboard.writeText(value);alert('تم النسخ.')}catch{window.prompt('انسخ النص:',value)}};
 category.addEventListener('change',()=>{const show=category.value==='other';otherWrap.hidden=!show;otherInput.required=show;if(!show)otherInput.value=''});
 document.getElementById('copy-ticket').addEventListener('click',()=>copy(document.getElementById('result-ticket').textContent));
-document.getElementById('copy-token').addEventListener('click',()=>copy(document.getElementById('result-token').textContent));
 function renderTable(){
  const tickets=readTickets();tbody.replaceChildren();
  if(!tickets.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=4;td.className='empty';td.textContent='لا توجد شكاوى محفوظة حتى الآن.';tr.append(td);tbody.append(tr);return}
@@ -153,11 +151,9 @@ form.addEventListener('submit',async event=>{
  try{
   const r=await fetch(API+'/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
   const d=await r.json().catch(()=>({}));if(!r.ok||d.ok!==true)throw new Error(d.error||'تعذر إرسال الشكوى الآن.');
-  document.getElementById('result-ticket').textContent=d.ticket_number;document.getElementById('result-token').textContent=d.tracking_token;
+  document.getElementById('result-ticket').textContent=d.ticket_number;
   const items=readTickets();items.unshift({ticket_number:d.ticket_number,tracking_token:d.tracking_token,subject,status:'received',created_at:d.created_at||new Date().toISOString()});saveTickets(items);
   renderTable();result.hidden=false;
-  const delivery={sent:'تم الإرسال',failed:'تعذر الإرسال',not_configured:'غير مُعدّ'};
-  document.getElementById('delivery-status').textContent='إشعار الإدارة: تيليجرام '+(delivery[d.delivery?.telegram]||'قيد التحقق')+'، البريد الإلكتروني '+(delivery[d.delivery?.admin_email]||'قيد التحقق')+'.';
   form.reset();otherWrap.hidden=true;otherInput.required=false;
  }catch(e){alert(e.message==='TOO_MANY_REPORTS_TRY_LATER'?'وصلت إلى الحد المؤقت لإرسال الشكاوى. حاول لاحقًا.':e.message)}
  finally{send.disabled=false;send.textContent='إرسال الشكوى'}
