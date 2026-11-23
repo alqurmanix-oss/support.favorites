@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#6d4bd1"><meta name="color-scheme" content="light">
+<title>متابعة بلاغ — AQX Favorites</title>
+<style>
+:root{font-family:Tahoma,Arial,sans-serif;color:#25213a;background:#f8f7fc}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;width:100%;overflow-x:hidden}
+body{background:linear-gradient(145deg,#f8f7fc,#f1edfc)}
+header{padding:17px 18px;background:#fff;border-bottom:1px solid #eeebf5;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font-weight:800;color:#6d4bd1;font-size:18px}.tag{font-size:11px;color:#858198}
+main{max-width:560px;width:100%;margin:42px auto;padding:0 16px}
+.card{background:#fff;border:1px solid #eeebf5;border-radius:20px;padding:24px;box-shadow:0 12px 34px rgba(48,34,91,.06)}
+.eyebrow{color:#7654db;font-size:11px;font-weight:700}h1{font-size:24px;margin:10px 0}
+p{font-size:13px;color:#777187;line-height:1.9}
+label{display:block;font-size:12px;font-weight:700;margin:15px 0 7px}
+input{width:100%;padding:13px;border:1px solid #e8e4f0;border-radius:11px;font:inherit;font-size:13px;background:#fff;color:#25213a;min-width:0}
+button{width:100%;border:0;border-radius:11px;padding:13px 18px;background:#6d4bd1;color:#fff;font:inherit;font-weight:700;margin-top:18px;cursor:pointer}
+button:disabled{opacity:.65;cursor:wait}
+#track-result{margin-top:18px}
+.status{padding:14px;border:1px solid #e8e2f5;background:#fbfaff;border-radius:13px}
+.status strong{color:#5637b8}
+.reply{padding:12px 0;border-top:1px solid #eee9f5;line-height:1.8;white-space:pre-wrap}
+.reply p{white-space:pre-wrap;color:#393449}
+.error{color:#b42318}
+.back{display:inline-block;margin-top:18px;color:#6d4bd1;font-weight:700;font-size:12px;text-decoration:none}
+footer{text-align:center;color:#a09bad;font-size:11px;padding:24px}
+@media(max-width:600px){main{margin:20px auto;padding:0 12px}.card{padding:19px}h1{font-size:22px}}
+</style>
+</head>
+<body>
+<header><div class="brand">AQX Favorites</div><div class="tag">الدعم الفني · متابعة البلاغات</div></header>
+<main><section class="card">
+<div class="eyebrow">AQX · TECHNICAL SUPPORT</div>
+<h1>متابعة بلاغ سابق</h1>
+<p>أدخل رقم البلاغ ورمز المتابعة اللذين حصلت عليهما عند إرسال البلاغ. ستظهر هنا حالة البلاغ وردود فريق الدعم.</p>
+<form id="track-form">
+<label for="track-ticket">رقم البلاغ</label>
+<input id="track-ticket" required autocomplete="off" placeholder="AQXF-YYMMDD-XXXXXXXX">
+<label for="track-token">رمز المتابعة</label>
+<input id="track-token" required autocomplete="off" placeholder="أدخل رمز المتابعة">
+<button id="track-submit" type="submit">عرض حالة البلاغ</button>
+</form>
+<div id="track-result" aria-live="polite"></div>
+<a class="back" href="https://support.favorites.alqurmanix.com/report.html">← العودة إلى إرسال بلاغ جديد</a>
+</section></main>
+<footer>© AQX Favorites</footer>
+<script>
+(function(){
+const API='https://vuszqzgldbsscuxdfhdz.supabase.co/functions/v1/aqx-support';
+const form=document.getElementById('track-form'),result=document.getElementById('track-result'),button=document.getElementById('track-submit');
+form.addEventListener('submit',async function(event){
+event.preventDefault();if(!form.reportValidity())return;
+button.disabled=true;button.textContent='جارٍ البحث...';result.replaceChildren();
+try{
+const response=await fetch(API+'/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket_number:document.getElementById('track-ticket').value.trim(),tracking_token:document.getElementById('track-token').value.trim()}),cache:'no-store'});
+const data=await response.json().catch(()=>({}));
+if(!response.ok||data.ok!==true)throw new Error(data.error||'تعذر العثور على البلاغ.');
+const labels={received:'تم الاستلام',in_review:'قيد المراجعة',waiting_user:'بانتظار ردك',answered:'تم الرد',resolved:'تم الحل',closed:'مغلق'};
+const box=document.createElement('div');box.className='status';
+const status=document.createElement('strong');status.textContent='حالة البلاغ: '+(labels[data.ticket.status]||data.ticket.status);
+const number=document.createElement('p');number.textContent='رقم البلاغ: '+data.ticket.ticket_number;box.append(status,number);result.append(box);
+if((data.replies||[]).length){(data.replies||[]).forEach(reply=>{const item=document.createElement('div');item.className='reply';const author=document.createElement('strong');author.textContent=(reply.author_label||'فريق AQX')+' — '+new Date(reply.created_at).toLocaleString('ar-EG');const body=document.createElement('p');body.textContent=reply.body;item.append(author,body);result.append(item);});}
+else{const empty=document.createElement('p');empty.textContent='لم تتم إضافة رد حتى الآن. سيظهر الرد هنا عند تسجيله.';result.append(empty);}
+}catch(error){const message=document.createElement('p');message.className='error';message.textContent='تعذر عرض البلاغ. تأكد من رقم البلاغ ورمز المتابعة، ثم حاول مرة أخرى.';result.append(message);}
+finally{button.disabled=false;button.textContent='عرض حالة البلاغ';}
+});
+})();
+</script>
+</body></html>
