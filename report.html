@@ -140,7 +140,8 @@ footer{text-align:center;color:#a09bad;font-size:11px;padding:30px}
       const data=await response.json().catch(()=>({}));
       if(!response.ok||data.ok!==true)throw new Error(data.error||'تعذر إرسال البلاغ حاليًا.');
       document.getElementById('result-ticket').textContent=data.ticket_number;
-      document.getElementById('result-token').textContent=data.tracking_token;\n      document.getElementById('return-to-favorites').href='https://favorites.alqurmanix.com/guest/?support_ticket='+encodeURIComponent(data.ticket_number)+'&tracking_token='+encodeURIComponent(data.tracking_token);
+      document.getElementById('result-token').textContent=data.tracking_token;
+      document.getElementById('return-to-favorites').href='https://favorites.alqurmanix.com/guest/?support_ticket='+encodeURIComponent(data.ticket_number)+'&tracking_token='+encodeURIComponent(data.tracking_token);
       const delivery=document.getElementById('delivery-status');
       const labels={sent:'تم الإرسال',failed:'تعذر الإرسال',not_configured:'لم يتم إعداد قناة الإرسال بعد'};
       delivery.textContent='إشعار الإدارة عبر تيليجرام: '+(labels[data.delivery?.telegram]||'قيد التحقق')+' — البريد الإلكتروني: '+(labels[data.delivery?.admin_email]||'قيد التحقق')+'.';
