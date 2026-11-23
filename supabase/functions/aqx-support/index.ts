@@ -208,7 +208,7 @@ Deno.serve(async (req: Request) => {
         ticket_number: ticketNumber, tracking_token_hash: await hash(trackingToken), reporter_user_id: reporterUserId,
         reporter_name: clean(body.name, 120) || "مستخدم AQX Favorites", reply_contact: contact || null,
         subject, category, custom_category: category === "other" ? customCategory : null, details, page_url: pageUrl || null,
-        ai_status: "pending", ai_failure_reason: null
+        ai_status: "not_configured", ai_failure_reason: null
       }).select("id,ticket_number,created_at").single();
       if (error) throw error;
 
