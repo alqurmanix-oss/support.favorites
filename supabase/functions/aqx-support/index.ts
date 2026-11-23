@@ -187,13 +187,29 @@ Deno.serve(async (req: Request) => {
       if (!allowed.includes(category) || (category === "other" && !customCategory)) throw new ApiError("INVALID_CATEGORY", 400);
       if (subject.length < 4 || details.length < 12) throw new ApiError("REPORT_DETAILS_TOO_SHORT", 400);
       if (pageUrl && !/^https:\/\//i.test(pageUrl)) throw new ApiError("INVALID_PAGE_URL", 400);
-      const forwarded = req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
-      const ip = forwarded.split(",")[0].trim().toLowerCase() || "unknown";
-      const ipHash = await hash((Deno.env.get("AQX_FAVORITES_RATE_SALT") || KEY) + "|support-ticket|" + ip);
-      const rate = await db.rpc("aqx_favorites_consume_rate_limit", { p_key_hash_hex: ipHash, p_limit: 5, p_window_seconds: 3600 });
+      const reporterUserId = await resolveAccount(req);
+      const rateSalt = Deno.env.get("AQX_FAVORITES_RATE_SALT") || KEY;
+      let rateKeyHash: string;
+      let rateLimit: number;
+      let rateWindowSeconds: number;
+      if (reporterUserId) {
+        rateKeyHash = await hash(rateSalt + "|support-ticket|registered|" + reporterUserId);
+        rateLimit = 3;
+        rateWindowSeconds = 3600;
+      } else {
+        const forwarded = req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+        const ip = forwarded.split(",")[0].trim().toLowerCase() || "unknown";
+        rateKeyHash = await hash(rateSalt + "|support-ticket|guest|" + ip);
+        rateLimit = 3;
+        rateWindowSeconds = 86400;
+      }
+      const rate = await db.rpc("aqx_favorites_consume_rate_limit", {
+        p_key_hash_hex: rateKeyHash,
+        p_limit: rateLimit,
+        p_window_seconds: rateWindowSeconds
+      });
       if (rate.error) throw rate.error;
       if (rate.data !== true) throw new ApiError("TOO_MANY_REPORTS_TRY_LATER", 429);
-      const reporterUserId = await resolveAccount(req);
       const trackingToken = randomToken();
       const ticketNumber = "AQXF-" + new Date().toISOString().slice(2,10).replace(/-/g,"") + "-" + Array.from(crypto.getRandomValues(new Uint8Array(4)),x=>x.toString(16).padStart(2,"0")).join("").toUpperCase();
       const { data: ticket, error } = await db.from("aqx_favorites_support_tickets").insert({
