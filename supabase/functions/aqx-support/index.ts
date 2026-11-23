@@ -91,24 +91,27 @@ async function sendTelegram(message: string) {
 }
 
 async function sendEmail(to: string, subject: string, text: string) {
-  const apiKey = Deno.env.get("RESEND_API_KEY") || "";
-  const from = Deno.env.get("AQX_SUPPORT_FROM_EMAIL") || Deno.env.get("RESEND_FROM_EMAIL") || "";
-  if (!apiKey || !from) return "not_configured";
+  if (!emailPattern.test(to)) return "not_configured";
+  const { data: bridgeToken, error: bridgeError } = await db.rpc("aqx_notifications_get_email_bridge_token");
+  if (bridgeError || typeof bridgeToken !== "string" || bridgeToken.length !== 64) return "not_configured";
   try {
-    const response = await fetch("https://api.resend.com/emails", {
+    const response = await fetch(ID_URL + "/functions/v1/aqx-notifications-email", {
       method: "POST",
-      headers: { "Authorization": "Bearer " + apiKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to: [to], subject: subject.slice(0, 180), text }),
+      headers: { "Content-Type": "application/json", "x-aqx-notifications-bridge": bridgeToken },
+      body: JSON.stringify({
+        job_id: crypto.randomUUID(), email: to, title: subject.slice(0,180),
+        body: text.slice(0,2800), target_path: "/notifications"
+      }),
       signal: AbortSignal.timeout(12000)
     });
     const result = await response.json().catch(() => ({}));
-    return response.ok && typeof result.id === "string" ? "sent" : "failed";
+    return response.ok && result?.ok === true && typeof result?.provider_message_id === "string" ? "sent" : "failed";
   } catch { return "failed"; }
 }
 
 async function getTicketByAccess(ticketNumber: string, trackingToken: string) {
   if (!ticketNumber || trackingToken.length < 24) throw new ApiError("TRACKING_DETAILS_REQUIRED", 400);
-  const { data, error } = await db.from("aqx_favorites_support_tickets").select("id,ticket_number,reporter_name,category,custom_category,details,page_url,status,ai_status,created_at,updated_at,last_replied_at")
+  const { data, error } = await db.from("aqx_favorites_support_tickets").select("id,ticket_number,reporter_name,category,custom_category,subject,details,page_url,status,ai_status,created_at,updated_at,last_replied_at")
     .eq("ticket_number", ticketNumber).eq("tracking_token_hash", await hash(trackingToken)).maybeSingle();
   if (error) throw error;
   if (!data) throw new ApiError("TICKET_NOT_FOUND_OR_ACCESS_DENIED", 404);
@@ -148,7 +151,7 @@ Deno.serve(async (req: Request) => {
       const { data: ticket, error } = await db.from("aqx_favorites_support_tickets").insert({
         ticket_number: ticketNumber, tracking_token_hash: await hash(trackingToken), reporter_user_id: reporterUserId,
         reporter_name: clean(body.name, 120) || "مستخدم AQX Favorites", reply_contact: contact || null,
-        category, custom_category: category === "other" ? customCategory : null, details, page_url: pageUrl || null,
+        subject, category, custom_category: category === "other" ? customCategory : null, details, page_url: pageUrl || null,
         ai_status: "not_configured", ai_failure_reason: "AQX_AI_ENGINE_NOT_CONNECTED"
       }).select("id,ticket_number,created_at").single();
       if (error) throw error;
@@ -196,7 +199,7 @@ Deno.serve(async (req: Request) => {
       await requireCentralAdmin(req);
       const body = await req.json().catch(() => ({}));
       const limit = Math.min(100, Math.max(1, Number.isInteger(body.limit) ? body.limit : 50));
-      const { data, error, count } = await db.from("aqx_favorites_support_tickets").select("id,ticket_number,reporter_name,reply_contact,category,custom_category,status,ai_status,telegram_status,admin_email_status,created_at,last_replied_at",{count:"exact"})
+      const { data, error, count } = await db.from("aqx_favorites_support_tickets").select("id,ticket_number,reporter_name,reply_contact,category,custom_category,subject,status,ai_status,telegram_status,admin_email_status,created_at,last_replied_at",{count:"exact"})
         .order("created_at",{ascending:false}).range(0,limit-1);
       if (error) throw error;
       return out(req, { ok: true, tickets: data || [], total: count || 0 });
