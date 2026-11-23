@@ -209,7 +209,7 @@ Deno.serve(async (req: Request) => {
         category: category === "other" ? "أخرى — " + customCategory : category,
         subject, details, pageUrl
       });
-      let autoResponse: { status: string; reason?: string; reply_id?: string } = { status: "escalated", reason: "AQX_AI_PROVIDER_UNAVAILABLE" };
+      let autoResponse: { status: string; reason?: string; reply_id?: string } = { status: "escalated", reason: "AQX_AUTOMATIC_REPLY_SAVE_FAILED" };
       {
         const { data: aiReply, error: aiReplyError } = await db.from("aqx_favorites_support_replies").insert({
           ticket_id: ticket.id, author_type: "system", author_label: "الرد الآلي من AQX Support",
@@ -221,12 +221,10 @@ Deno.serve(async (req: Request) => {
             last_replied_at: aiReply.created_at, updated_at: new Date().toISOString()
           }).eq("id", ticket.id);
           if (!aiUpdateError) autoResponse = { status: "answered", reply_id: aiReply.id };
-          else autoResponse = { status: "escalated", reason: "AQX_AI_REPLY_STATUS_UPDATE_FAILED" };
+          else autoResponse = { status: "escalated", reason: "AQX_AUTOMATIC_REPLY_STATUS_UPDATE_FAILED" };
         } else {
-          autoResponse = { status: "escalated", reason: "AQX_AI_REPLY_SAVE_FAILED" };
+          autoResponse = { status: "escalated", reason: "AQX_AUTOMATIC_REPLY_SAVE_FAILED" };
         }
-      } else {
-        autoResponse = { status: "escalated", reason: "AQX_AUTOMATIC_REPLY_SAVE_FAILED" };
       }
       if (autoResponse.status !== "answered") {
         await db.from("aqx_favorites_support_tickets").update({
