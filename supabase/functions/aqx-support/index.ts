@@ -109,6 +109,62 @@ async function sendEmail(to: string, subject: string, text: string) {
   } catch { return "failed"; }
 }
 
+
+async function generateSupportReply(input: { name: string; category: string; subject: string; details: string; pageUrl: string }) {
+  const apiKey = Deno.env.get("AQX_TTS_API_KEY") || "";
+  if (!apiKey) return { ok: false as const, reason: "AQX_AI_CREDENTIALS_UNAVAILABLE" };
+  const base = (Deno.env.get("AQX_TTS_BASE_URL") || "https://api.openai.com/v1").replace(/\\/+$/, "");
+  const headers = { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" };
+  let model = Deno.env.get("AQX_SUPPORT_AI_MODEL") || Deno.env.get("AQX_CHAT_MODEL") || "";
+  if (!model) {
+    try {
+      const modelsResponse = await fetch(base + "/models", { headers: { Authorization: "Bearer " + apiKey }, signal: AbortSignal.timeout(7000) });
+      if (modelsResponse.ok) {
+        const catalog = await modelsResponse.json().catch(() => ({}));
+        const models = Array.isArray(catalog.data) ? catalog.data.map((x: any) => String(x.id || "")) : [];
+        model = models.find((id: string) => id && !/(tts|transcri|whisper|embedding|audio|speech|moderation|image|realtime)/i.test(id)) || "";
+      }
+    } catch {}
+  }
+  if (!model) model = "gpt-4o-mini";
+  const system = [
+    "أنت مساعد الدعم الفني الرسمي لمنصة AQX Favorites.",
+    "أجب باللغة العربية الواضحة وبأسلوب مهني ودود ومختصر.",
+    "حلل المشكلة المذكورة فقط، وقدّم خطوات عملية آمنة ومحددة.",
+    "لا تدّعِ أنك نفذت إصلاحًا أو غيّرت بيانات أو راجعت حسابًا.",
+    "لا تطلب كلمات مرور أو رموز تحقق أو مفاتيح سرية.",
+    "إذا كانت المعلومات غير كافية، وضّح ما يلزم للتحقق وصعّد الحالة لفريق الدعم.",
+    "لا تخترع روابط أو خصائص غير مؤكدة. لا تذكر أنك نموذج ذكاء اصطناعي."
+  ].join("\\n");
+  const user = [
+    "اسم المبلّغ: " + input.name,
+    "التصنيف: " + input.category,
+    "عنوان البلاغ: " + input.subject,
+    "التفاصيل: " + input.details,
+    "رابط الصفحة: " + (input.pageUrl || "غير محدد"),
+    "اكتب ردًا مباشرًا للمستخدم يتضمن التشخيص الأولي والخطوة التالية."
+  ].join("\\n");
+  try {
+    const response = await fetch(base + "/chat/completions", {
+      method: "POST", headers,
+      body: JSON.stringify({ model, messages: [{ role: "system", content: system }, { role: "user", content: user }], temperature: 0.2, max_tokens: 650 }),
+      signal: AbortSignal.timeout(25000)
+    });
+    if (!response.ok) {
+      console.error("support_ai_provider_http", response.status);
+      return { ok: false as const, reason: "AQX_AI_PROVIDER_REQUEST_FAILED" };
+    }
+    const result = await response.json().catch(() => ({}));
+    const raw = result?.choices?.[0]?.message?.content;
+    const answer = typeof raw === "string" ? raw.trim() : Array.isArray(raw) ? raw.map((x: any) => typeof x?.text === "string" ? x.text : "").join("\\n").trim() : "";
+    if (answer.length < 20) return { ok: false as const, reason: "AQX_AI_EMPTY_RESPONSE" };
+    return { ok: true as const, answer: answer.slice(0, 9000), model };
+  } catch (error) {
+    console.error("support_ai_request_error", error instanceof Error ? error.name : "unknown");
+    return { ok: false as const, reason: "AQX_AI_PROVIDER_UNAVAILABLE" };
+  }
+}
+
 async function getTicketByAccess(ticketNumber: string, trackingToken: string) {
   if (!ticketNumber || trackingToken.length < 24) throw new ApiError("TRACKING_DETAILS_REQUIRED", 400);
   const { data, error } = await db.from("aqx_favorites_support_tickets").select("id,ticket_number,reporter_name,category,custom_category,subject,details,page_url,status,ai_status,created_at,updated_at,last_replied_at")
@@ -152,9 +208,40 @@ Deno.serve(async (req: Request) => {
         ticket_number: ticketNumber, tracking_token_hash: await hash(trackingToken), reporter_user_id: reporterUserId,
         reporter_name: clean(body.name, 120) || "مستخدم AQX Favorites", reply_contact: contact || null,
         subject, category, custom_category: category === "other" ? customCategory : null, details, page_url: pageUrl || null,
-        ai_status: "not_configured", ai_failure_reason: "AQX_AI_ENGINE_NOT_CONNECTED"
+        ai_status: "pending", ai_failure_reason: null
       }).select("id,ticket_number,created_at").single();
       if (error) throw error;
+
+      const aiResult = await generateSupportReply({
+        name: clean(body.name, 120) || "مستخدم AQX Favorites",
+        category: category === "other" ? "أخرى — " + customCategory : category,
+        subject, details, pageUrl
+      });
+      let autoResponse: { status: string; reason?: string; reply_id?: string } = { status: "escalated", reason: "AQX_AI_PROVIDER_UNAVAILABLE" };
+      if (aiResult.ok) {
+        const { data: aiReply, error: aiReplyError } = await db.from("aqx_favorites_support_replies").insert({
+          ticket_id: ticket.id, author_type: "system", author_label: "مساعد AQX الذكي",
+          body: aiResult.answer, visibility: "public"
+        }).select("id,body,created_at").single();
+        if (!aiReplyError && aiReply) {
+          const { error: aiUpdateError } = await db.from("aqx_favorites_support_tickets").update({
+            ai_status: "answered", ai_failure_reason: null, status: "answered",
+            last_replied_at: aiReply.created_at, updated_at: new Date().toISOString()
+          }).eq("id", ticket.id);
+          if (!aiUpdateError) autoResponse = { status: "answered", reply_id: aiReply.id };
+          else autoResponse = { status: "escalated", reason: "AQX_AI_REPLY_STATUS_UPDATE_FAILED" };
+        } else {
+          autoResponse = { status: "escalated", reason: "AQX_AI_REPLY_SAVE_FAILED" };
+        }
+      } else {
+        autoResponse = { status: "escalated", reason: aiResult.reason };
+      }
+      if (autoResponse.status !== "answered") {
+        await db.from("aqx_favorites_support_tickets").update({
+          ai_status: "failed", ai_failure_reason: autoResponse.reason,
+          updated_at: new Date().toISOString()
+        }).eq("id", ticket.id);
+      }
 
       const adminSettings = await db.from("aqx_settings").select("favorites_support_admin_email").eq("settings_id","global").maybeSingle();
       const adminEmail = adminSettings.data?.favorites_support_admin_email || "alqurmanix@gmail.com";
@@ -166,7 +253,7 @@ Deno.serve(async (req: Request) => {
         "التفاصيل: " + details,
         "وسيلة الرد: " + (contact || "غير متوفرة"),
         "رابط الصفحة: " + (pageUrl || "غير محدد"),
-        "سبب التصعيد: لم يتم توصيل محرك AQX AI المستقل حتى الآن.",
+        autoResponse.status === "answered" ? "حالة الرد الآلي: تم إنشاء رد AI ونشره للمستخدم." : "حالة الرد الآلي: تعذر إنشاء رد AI، ويلزم تدخل فريق الدعم.",
         "إدارة البلاغات: " + ADMIN_URL
       ].join("\n");
       const [telegramStatus, emailStatus] = await Promise.all([
@@ -182,7 +269,7 @@ Deno.serve(async (req: Request) => {
         ok: true, ticket_number: ticketNumber, tracking_token: trackingToken,
         created_at: ticket.created_at, message: "تم إرسال بلاغك بنجاح.",
         delivery: { telegram: telegramStatus, admin_email: emailStatus },
-        auto_response: { status: "escalated", reason: "AQX_AI_ENGINE_NOT_CONNECTED" }
+        auto_response: autoResponse
       }, 201);
     }
 
