@@ -113,7 +113,7 @@ async function sendEmail(to: string, subject: string, text: string) {
 async function generateSupportReply(input: { name: string; category: string; subject: string; details: string; pageUrl: string }) {
   const apiKey = Deno.env.get("AQX_TTS_API_KEY") || "";
   if (!apiKey) return { ok: false as const, reason: "AQX_AI_CREDENTIALS_UNAVAILABLE" };
-  const base = (Deno.env.get("AQX_TTS_BASE_URL") || "https://api.openai.com/v1").replace(/\\/+$/, "");
+  const base = (Deno.env.get("AQX_TTS_BASE_URL") || "https://api.openai.com/v1").replace(/\/+$/, "");
   const headers = { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" };
   let model = Deno.env.get("AQX_SUPPORT_AI_MODEL") || Deno.env.get("AQX_CHAT_MODEL") || "";
   if (!model) {
