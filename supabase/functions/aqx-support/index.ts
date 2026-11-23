@@ -212,7 +212,7 @@ Deno.serve(async (req: Request) => {
       let autoResponse: { status: string; reason?: string; reply_id?: string } = { status: "escalated", reason: "AQX_AUTOMATIC_REPLY_SAVE_FAILED" };
       {
         const { data: aiReply, error: aiReplyError } = await db.from("aqx_favorites_support_replies").insert({
-          ticket_id: ticket.id, author_type: "system", author_label: "الرد الآلي من AQX Support",
+          ticket_id: ticket.id, author_type: "system", author_label: "AQX Support",
           body: autoReply, visibility: "public"
         }).select("id,body,created_at").single();
         if (!aiReplyError && aiReply) {
@@ -266,7 +266,7 @@ Deno.serve(async (req: Request) => {
     if (req.method === "POST" && path.endsWith("/track")) {
       const body = await req.json().catch(() => ({}));
       const ticket = await getTicketByAccess(clean(body.ticket_number, 40), clean(body.tracking_token, 120));
-      const { data: replies, error } = await db.from("aqx_favorites_support_replies").select("id,author_label,body,created_at")
+      const { data: replies, error } = await db.from("aqx_favorites_support_replies").select("id,author_type,author_label,body,created_at")
         .eq("ticket_id", ticket.id).eq("visibility","public").order("created_at",{ascending:true});
       if (error) throw error;
       return out(req, { ok: true, ticket, replies: replies || [] });
