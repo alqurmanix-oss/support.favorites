@@ -75,9 +75,9 @@ footer{text-align:center;padding:14px;color:#a09bad;font-size:10px}
 </select>
 <div id="other-wrap" hidden><label for="other-category">نوع المشكلة</label><input id="other-category" type="text" placeholder="اكتب نوع المشكلة"></div>
 <label for="subject">اسم الشكوى</label>
-<input id="subject" name="subject" maxlength="180" required placeholder="عنوان مختصر للشكوى">
+<input id="subject" name="subject" minlength="4" maxlength="180" required placeholder="عنوان مختصر للشكوى">
 <label for="details">تفاصيل الشكوى</label>
-<textarea id="details" name="details" maxlength="8000" required placeholder="اشرح المشكلة والخطوات التي أدت إليها"></textarea>
+<textarea id="details" name="details" minlength="12" maxlength="8000" required placeholder="اشرح المشكلة والخطوات التي أدت إليها"></textarea>
 <label for="contact">وسيلة للرد عليك (اختياري)</label>
 <input id="contact" name="contact" maxlength="240" placeholder="البريد الإلكتروني أو رقم واتساب">
 <button id="send-report" class="primary" type="submit">إرسال الشكوى</button>
@@ -153,7 +153,7 @@ form.addEventListener('submit',async event=>{
   const items=readTickets();items.unshift({ticket_number:d.ticket_number,tracking_token:d.tracking_token,subject,status:'received',created_at:d.created_at||new Date().toISOString()});saveTickets(items);
   renderTable();result.hidden=false;
   form.reset();otherWrap.hidden=true;otherInput.required=false;
- }catch(e){alert(e.message==='TOO_MANY_REPORTS_TRY_LATER'?'وصلت إلى الحد المؤقت لإرسال الشكاوى. حاول لاحقًا.':e.message)}
+ }catch(e){const messages={TOO_MANY_REPORTS_TRY_LATER:'وصلت إلى الحد المؤقت لإرسال الشكاوى. حاول لاحقًا.',INVALID_CATEGORY:'اختر نوع المشكلة بشكل صحيح.',REPORT_DETAILS_TOO_SHORT:'اكتب عنوانًا من 4 أحرف على الأقل ووصفًا لا يقل عن 12 حرفًا.',INVALID_SUBMISSION:'تعذر قبول البلاغ. راجع البيانات وحاول مرة أخرى.'};alert(messages[e.message]||e.message||'تعذر إرسال الشكوى. حاول مرة أخرى.')}
  finally{send.disabled=false;send.textContent='إرسال الشكوى'}
 });
 document.getElementById('send-whatsapp').addEventListener('click',()=>{
