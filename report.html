@@ -39,10 +39,6 @@ button:disabled{opacity:.65;cursor:wait}
 .whatsapp-btn svg{width:21px;height:21px;flex:0 0 21px}
 .whatsapp-note{font-size:11px;color:#777187;line-height:1.8;text-align:center;margin:8px 0 0}
 .help{font-size:11px;color:#9993aa;line-height:1.8;margin-top:12px}
-.track-link-card{margin-top:18px;padding:16px;border:1px solid #e8e2f5;border-radius:14px;background:#fbfaff}
-.track-link-card strong{display:block;font-size:14px}
-.track-link-card p{font-size:12px;color:#777187;line-height:1.8;margin:6px 0 10px}
-.track-link{display:inline-block;padding:9px 14px;border-radius:9px;background:#f0ecfa;color:#5637b8;font-size:12px;font-weight:800}
 main{max-width:680px;margin:22px auto;padding:0 16px}
 .card{padding:22px}
 @media(max-width:600px){main{margin:12px auto;padding:0 12px}.card{padding:17px}h1{font-size:22px}textarea{min-height:95px}}
@@ -58,12 +54,6 @@ footer{text-align:center;color:#a09bad;font-size:11px;padding:30px}
 <div class="eyebrow">AQX · TECHNICAL SUPPORT</div>
 <h1>🐞 الإبلاغ عن مشكلة</h1>
 <p class="intro">ساعدنا في تحسين AQX Favorites. جهّز وصفًا واضحًا للمشكلة والخطوات التي أدت إلى ظهورها، حتى يتمكن فريق الدعم من فهمها ومتابعتها.</p>
-<div class="track-link-card">
-<strong>هل لديك بلاغ سابق؟</strong>
-<p>افتح صفحة مستقلة لمتابعة حالة البلاغ والردود باستخدام رقم البلاغ ورمز المتابعة.</p>
-<a href="https://support.favorites.alqurmanix.com/track.html" class="track-link">متابعة بلاغ سابق ←</a>
-</div>
-
 <form>
 <label for="category">نوع المشكلة</label>
 <select id="category" name="category" required>
@@ -144,21 +134,7 @@ footer{text-align:center;color:#a09bad;font-size:11px;padding:30px}
     const message=['بلاغ دعم فني — AQX Favorites','','نوع المشكلة: '+categoryLabel,'عنوان البلاغ: '+subject,'تفاصيل المشكلة:',details,'وسيلة التواصل: '+(contact||'لم يتم إدخال وسيلة تواصل'),'','تم إعداد البلاغ من صفحة الدعم الفني في AQX Favorites.'].join('\n');
     window.open('https://wa.me/201027834695?text='+encodeURIComponent(message),'_blank','noopener,noreferrer');
   });
-  const trackForm=document.getElementById('track-form'),trackResult=document.getElementById('track-result');
-  trackForm.addEventListener('submit',async function(event){
-    event.preventDefault();if(!trackForm.reportValidity())return;
-    const button=document.getElementById('track-submit');button.disabled=true;button.textContent='جارٍ البحث...';trackResult.textContent='';
-    try{
-      const response=await fetch(API+'/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket_number:document.getElementById('track-ticket').value.trim(),tracking_token:document.getElementById('track-token').value.trim()}),cache:'no-store'});
-      const data=await response.json().catch(()=>({}));if(!response.ok||data.ok!==true)throw new Error(data.error||'تعذر العثور على البلاغ.');
-      const labels={received:'تم الاستلام',in_review:'قيد المراجعة',waiting_user:'بانتظار ردك',answered:'تم الرد',resolved:'تم الحل',closed:'مغلق'};
-      const title=document.createElement('p');title.className='status-label';title.textContent='حالة البلاغ: '+(labels[data.ticket.status]||data.ticket.status);trackResult.appendChild(title);
-      const heading=document.createElement('p');heading.textContent='رقم البلاغ: '+data.ticket.ticket_number;trackResult.appendChild(heading);
-      (data.replies||[]).forEach(reply=>{const item=document.createElement('div');item.className='reply-item';const author=document.createElement('strong');author.textContent=(reply.author_label||'فريق AQX')+' — '+new Date(reply.created_at).toLocaleString('ar-EG');const body=document.createElement('p');body.textContent=reply.body;item.append(author,body);trackResult.appendChild(item);});
-      if(!(data.replies||[]).length){const empty=document.createElement('p');empty.textContent='لم تتم إضافة رد حتى الآن. سيظهر الرد هنا عند تسجيله.';trackResult.appendChild(empty);}
-    }catch(error){const message=document.createElement('p');message.className='error-message';message.textContent='تعذر عرض البلاغ. تأكد من رقم البلاغ ورمز المتابعة.';trackResult.appendChild(message);}
-    finally{button.disabled=false;button.textContent='عرض حالة البلاغ';}
-  });
+
 })();
 </script>
 <a class="back" href="https://favorites.alqurmanix.com/guest/">العودة إلى AQX Favorites ←</a>
