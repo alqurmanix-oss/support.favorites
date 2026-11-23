@@ -63,12 +63,12 @@ footer{text-align:center;padding:14px;color:#a09bad;font-size:10px}
 const API='https://vuszqzgldbsscuxdfhdz.supabase.co/functions/v1/aqx-support';
 const SELECTED='aqx_support_selected_ticket_v1';
 const labels={received:'لم يتم الرد',in_review:'مراجعة',waiting_user:'بانتظار ردك',answered:'تم الرد',resolved:'تم الحل',closed:'مغلق'};
-const button={disabled:false},view=document.getElementById('ticket-view'),error=document.getElementById('track-error');
+const view=document.getElementById('ticket-view'),error=document.getElementById('track-error');
 async function showTicket(number,token){
  error.hidden=true;view.hidden=true;
  try{
   const r=await fetch(API+'/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket_number:number,tracking_token:token}),cache:'no-store'});
-  const d=await r.json().catch(()=>({}));if(!r.ok||d.ok!==true||!d.ticket)throw new Error('تعذر العثور على الشكوى. راجع رقم البلاغ ورمز المتابعة.');
+  const d=await r.json().catch(()=>({}));if(!r.ok||d.ok!==true||!d.ticket)throw new Error('تعذر تحميل بيانات الشكوى. ارجع إلى جدول شكاواي وحاول فتحها مرة أخرى.');
   const t=d.ticket;
   document.getElementById('ticket-subject').textContent=t.subject||'شكوى دعم فني';
   document.getElementById('ticket-number').textContent='رقم البلاغ: '+(t.ticket_number||number);
