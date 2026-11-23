@@ -39,6 +39,13 @@ button:disabled{opacity:.65;cursor:wait}
 .whatsapp-btn svg{width:21px;height:21px;flex:0 0 21px}
 .whatsapp-note{font-size:11px;color:#777187;line-height:1.8;text-align:center;margin:8px 0 0}
 .help{font-size:11px;color:#9993aa;line-height:1.8;margin-top:12px}
+.track-link-card{margin-top:18px;padding:16px;border:1px solid #e8e2f5;border-radius:14px;background:#fbfaff}
+.track-link-card strong{display:block;font-size:14px}
+.track-link-card p{font-size:12px;color:#777187;line-height:1.8;margin:6px 0 10px}
+.track-link{display:inline-block;padding:9px 14px;border-radius:9px;background:#f0ecfa;color:#5637b8;font-size:12px;font-weight:800}
+main{max-width:680px;margin:22px auto;padding:0 16px}
+.card{padding:22px}
+@media(max-width:600px){main{margin:12px auto;padding:0 12px}.card{padding:17px}h1{font-size:22px}textarea{min-height:95px}}
 a{color:#6d4bd1;text-decoration:none;font-weight:700}.back{display:inline-block;margin-top:22px}
 footer{text-align:center;color:#a09bad;font-size:11px;padding:30px}
 @media(max-width:600px){main{margin:24px auto}.card{padding:21px}h1{font-size:23px}}
@@ -92,16 +99,12 @@ footer{text-align:center;color:#a09bad;font-size:11px;padding:30px}
   <p id="delivery-status"></p>
   <p><a id="return-to-favorites" href="https://favorites.alqurmanix.com/guest/" style="color:#6d4bd1;font-weight:700">العودة إلى AQX Favorites</a></p>
 </section>
-<section class="track-card" id="track-section">
-  <h2>متابعة بلاغ سابق</h2>
-  <p>أدخل رقم البلاغ ورمز المتابعة للاطلاع على حالته والردود المسجلة عليه.</p>
-  <form id="track-form">
-    <label for="track-ticket">رقم البلاغ</label><input id="track-ticket" required placeholder="AQXF-YYMMDD-XXXXXXXX">
-    <label for="track-token">رمز المتابعة</label><input id="track-token" required autocomplete="off" placeholder="أدخل رمز المتابعة الذي احتفظت به">
-    <button class="submit-btn" id="track-submit" type="submit">عرض حالة البلاغ</button>
-  </form>
-  <div id="track-result" aria-live="polite"></div>
-</section>
+<div class="track-link-card">
+<strong>هل لديك بلاغ سابق؟</strong>
+<p>افتح صفحة مستقلة لمتابعة حالة البلاغ والردود باستخدام رقم البلاغ ورمز المتابعة.</p>
+<a href="https://support.favorites.alqurmanix.com/track.html" class="track-link">متابعة بلاغ سابق ←</a>
+</div>
+
 <script>
 (function(){
   const API='https://vuszqzgldbsscuxdfhdz.supabase.co/functions/v1/aqx-support';
