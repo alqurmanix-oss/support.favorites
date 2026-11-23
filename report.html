@@ -18,6 +18,10 @@ label{display:block;font-size:12px;font-weight:700;margin:15px 0 7px}
 input,select,textarea{width:100%;padding:12px;border:1px solid #e8e4f0;border-radius:11px;font:inherit;font-size:13px;background:#fff;color:#25213a}
 textarea{min-height:130px;resize:vertical}
 button{border:0;border-radius:11px;padding:12px 18px;background:#b9b3c8;color:#fff;font:inherit;font-weight:700;margin-top:18px;cursor:not-allowed}
+.whatsapp-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px;padding:14px 18px;border:0;border-radius:12px;background:#168b55;color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s,transform .2s}
+.whatsapp-btn:hover{background:#117647;transform:translateY(-1px)}
+.whatsapp-btn svg{width:21px;height:21px;flex:0 0 21px}
+.whatsapp-note{font-size:11px;color:#777187;line-height:1.8;text-align:center;margin:8px 0 0}
 .help{font-size:11px;color:#9993aa;line-height:1.8;margin-top:12px}
 a{color:#6d4bd1;text-decoration:none;font-weight:700}.back{display:inline-block;margin-top:22px}
 footer{text-align:center;color:#a09bad;font-size:11px;padding:30px}
@@ -51,25 +55,66 @@ footer{text-align:center;color:#a09bad;font-size:11px;padding:30px}
 <input id="other-category" name="other_category" type="text" placeholder="اكتب نوع المشكلة">
 </div>
 <label for="subject">عنوان البلاغ</label>
-<input id="subject" type="text" placeholder="اكتب عنوانًا مختصرًا للمشكلة" disabled>
+<input id="subject" name="subject" type="text" placeholder="اكتب عنوانًا مختصرًا للمشكلة" required>
 <label for="details">تفاصيل المشكلة</label>
-<textarea id="details" placeholder="ماذا حدث؟ وما الخطوات التي أدت إلى المشكلة؟" disabled></textarea>
+<textarea id="details" name="details" placeholder="ماذا حدث؟ وما الخطوات التي أدت إلى المشكلة؟" required></textarea>
 <label for="contact">وسيلة تواصل (اختياري)</label>
-<input id="contact" type="text" placeholder="بريد إلكتروني أو وسيلة تواصل" disabled>
-<button type="button" disabled>إرسال البلاغ — غير متاح حاليًا</button>
-<p class="help">سيتم تفعيل النموذج بعد ربطه بواجهة آمنة لاستقبال البلاغات، مع توضيح سياسة التعامل مع البيانات والمرفقات قبل الإرسال.</p>
+<input id="contact" name="contact" type="text" placeholder="بريد إلكتروني أو وسيلة تواصل">
+<button type="button" disabled>إرسال البلاغ</button>
+<button class="whatsapp-btn" id="send-whatsapp" type="button">
+<svg viewBox="0 0 32 32" aria-hidden="true" fill="currentColor"><path d="M16.04 3C8.87 3 3.04 8.82 3.04 15.99c0 2.29.6 4.52 1.75 6.5L3 29l6.68-1.75a13 13 0 0 0 6.36 1.66h.01c7.17 0 13-5.83 13-13S23.22 3 16.04 3zm0 23.72h-.01a10.8 10.8 0 0 1-5.5-1.5l-.4-.24-3.97 1.04 1.06-3.87-.26-.4a10.75 10.75 0 1 1 9.08 4.97zm5.9-8.06c-.32-.16-1.88-.93-2.17-1.04-.29-.1-.5-.16-.7.16-.21.31-.81 1.04-.99 1.25-.18.21-.36.23-.67.08-.31-.16-1.32-.49-2.51-1.55-.93-.83-1.56-1.86-1.74-2.17-.18-.31-.02-.48.14-.64.14-.14.31-.36.47-.54.16-.18.21-.31.31-.52.1-.21.05-.39-.03-.55-.08-.16-.7-1.69-.96-2.31-.25-.6-.51-.52-.7-.53h-.6c-.21 0-.55.08-.83.39-.29.31-1.09 1.07-1.09 2.6s1.12 3.02 1.27 3.23c.16.21 2.2 3.36 5.33 4.71.75.32 1.33.52 1.78.66.75.24 1.43.21 1.97.13.6-.09 1.88-.77 2.15-1.51.26-.75.26-1.38.18-1.51-.08-.13-.29-.21-.6-.36z"/></svg>
+إرسال تفاصيل البلاغ عبر واتساب
+</button>
+<p class="whatsapp-note">ستُفتح محادثة واتساب مع تفاصيل البلاغ جاهزة للمراجعة والإرسال.</p>
 </form>
 <script>
 (function(){
   const category = document.getElementById('category');
   const otherWrap = document.getElementById('other-category-wrap');
   const otherInput = document.getElementById('other-category');
+  const form = document.querySelector('form');
+  const whatsappButton = document.getElementById('send-whatsapp');
+  const categoryNames = {
+    account: 'التسجيل أو تسجيل الدخول',
+    saving: 'حفظ الروابط أو حذفها',
+    sync: 'المزامنة أو نقل المحفوظات',
+    display: 'عرض الصفحة أو التنسيق',
+    performance: 'البطء أو الأداء',
+    search: 'البحث أو الوصول إلى الروابط',
+    reviews: 'التقييمات أو المراجعات',
+    security: 'الأمان أو الخصوصية',
+    notifications: 'الإشعارات',
+    other: 'أخرى'
+  };
   category.addEventListener('change', function(){
     const showOther = category.value === 'other';
     otherWrap.hidden = !showOther;
     otherInput.required = showOther;
     if (!showOther) otherInput.value = '';
     if (showOther) otherInput.focus();
+  });
+
+  whatsappButton.addEventListener('click', function(){
+    if (!form.reportValidity()) return;
+    const categoryLabel = category.value === 'other'
+      ? 'أخرى — ' + otherInput.value.trim()
+      : (categoryNames[category.value] || 'غير محدد');
+    const subject = document.getElementById('subject').value.trim();
+    const details = document.getElementById('details').value.trim();
+    const contact = document.getElementById('contact').value.trim();
+    const message = [
+      'بلاغ دعم فني — AQX Favorites',
+      '',
+      'نوع المشكلة: ' + categoryLabel,
+      'عنوان البلاغ: ' + subject,
+      'تفاصيل المشكلة:',
+      details,
+      'وسيلة التواصل: ' + (contact || 'لم يتم إدخال وسيلة تواصل'),
+      '',
+      'تم إعداد البلاغ من صفحة الدعم الفني في AQX Favorites.'
+    ].join('\\n');
+    const whatsappUrl = 'https://wa.me/201027834695?text=' + encodeURIComponent(message);
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
   });
 })();
 </script>
