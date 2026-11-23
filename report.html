@@ -4,14 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#6d4bd1">
+<meta name="color-scheme" content="light">
 <title>الإبلاغ عن مشكلة — AQX Favorites</title>
 <style>
 :root{font-family:Tahoma,Arial,sans-serif;color:#25213a;background:#f8f7fc}
-*{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(145deg,#f8f7fc,#f1edfc)}
-header{padding:22px max(20px,calc((100% - 1040px)/2));background:#fff;border-bottom:1px solid #eeebf5;display:flex;align-items:center;justify-content:space-between;gap:16px}
+html,body{display:block!important;visibility:visible!important;opacity:1!important;min-height:100%;margin:0}
+body{background:#f8f7fc;background:linear-gradient(145deg,#f8f7fc,#f1edfc)}
+*{box-sizing:border-box}
+header{padding:22px 20px;background:#fff;border-bottom:1px solid #eeebf5;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .brand{font-weight:800;color:#6d4bd1;font-size:19px}.tag{font-size:12px;color:#858198}
-main{max-width:760px;margin:48px auto;padding:0 20px}
-.card{background:#fff;border:1px solid #eeebf5;border-radius:22px;padding:28px;box-shadow:0 12px 34px rgba(48,34,91,.06)}
+main{display:block!important;visibility:visible!important;max-width:760px;margin:48px auto;padding:0 20px}
+.card{display:block!important;visibility:visible!important;background:#fff;border:1px solid #eeebf5;border-radius:22px;padding:28px;box-shadow:0 12px 34px rgba(48,34,91,.06)}
 .eyebrow{color:#7654db;font-size:12px;font-weight:700}h1{font-size:27px;margin:12px 0}
 .intro{color:#777187;line-height:1.9;margin:0 0 22px}
 label{display:block;font-size:12px;font-weight:700;margin:15px 0 7px}
@@ -109,82 +112,45 @@ footer{text-align:center;color:#a09bad;font-size:11px;padding:30px}
   const whatsappButton=document.getElementById('send-whatsapp');
   const sendButton=document.getElementById('send-report');
   const resultCard=document.getElementById('submission-result');
-  const categoryNames={
-    account:'التسجيل أو تسجيل الدخول',saving:'حفظ الروابط أو حذفها',sync:'المزامنة أو نقل المحفوظات',
-    display:'عرض الصفحة أو التنسيق',performance:'البطء أو الأداء',search:'البحث أو الوصول إلى الروابط',
-    reviews:'التقييمات أو المراجعات',security:'الأمان أو الخصوصية',notifications:'الإشعارات',other:'أخرى'
-  };
-  const copyText=async value=>{
-    try{await navigator.clipboard.writeText(value);alert('تم النسخ بنجاح.')}
-    catch{window.prompt('انسخ النص التالي:',value)}
-  };
-  category.addEventListener('change',function(){
-    const show=category.value==='other';otherWrap.hidden=!show;otherInput.required=show;
-    if(!show)otherInput.value='';if(show)otherInput.focus();
-  });
+  const categoryNames={account:'التسجيل أو تسجيل الدخول',saving:'حفظ الروابط أو حذفها',sync:'المزامنة أو نقل المحفوظات',display:'عرض الصفحة أو التنسيق',performance:'البطء أو الأداء',search:'البحث أو الوصول إلى الروابط',reviews:'التقييمات أو المراجعات',security:'الأمان أو الخصوصية',notifications:'الإشعارات',other:'أخرى'};
+  const copyText=async value=>{try{await navigator.clipboard.writeText(value);alert('تم النسخ بنجاح.')}catch{window.prompt('انسخ النص التالي:',value)}};
+  category.addEventListener('change',function(){const show=category.value==='other';otherWrap.hidden=!show;otherInput.required=show;if(!show)otherInput.value='';if(show)otherInput.focus();});
   document.getElementById('copy-ticket').addEventListener('click',()=>copyText(document.getElementById('result-ticket').textContent));
   document.getElementById('copy-token').addEventListener('click',()=>copyText(document.getElementById('result-token').textContent));
   form.addEventListener('submit',async function(event){
-    event.preventDefault();
-    if(!form.reportValidity())return;
+    event.preventDefault();if(!form.reportValidity())return;
     sendButton.disabled=true;sendButton.textContent='جارٍ إرسال البلاغ...';
-    const payload={
-      category:category.value,other_category:otherInput.value.trim(),
-      subject:document.getElementById('subject').value.trim(),
-      details:document.getElementById('details').value.trim(),
-      contact:document.getElementById('contact').value.trim(),
-      page_url:window.location.href,website:document.getElementById('website').value
-    };
+    const payload={category:category.value,other_category:otherInput.value.trim(),subject:document.getElementById('subject').value.trim(),details:document.getElementById('details').value.trim(),contact:document.getElementById('contact').value.trim(),page_url:window.location.href,website:document.getElementById('website').value};
     try{
       const response=await fetch(API+'/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
       const data=await response.json().catch(()=>({}));
       if(!response.ok||data.ok!==true)throw new Error(data.error||'تعذر إرسال البلاغ حاليًا.');
-      document.getElementById('result-ticket').textContent=data.ticket_number;
-      document.getElementById('result-token').textContent=data.tracking_token;
+      document.getElementById('result-ticket').textContent=data.ticket_number;document.getElementById('result-token').textContent=data.tracking_token;
       document.getElementById('return-to-favorites').href='https://favorites.alqurmanix.com/guest/?support_ticket='+encodeURIComponent(data.ticket_number)+'&tracking_token='+encodeURIComponent(data.tracking_token);
-      const delivery=document.getElementById('delivery-status');
-      const labels={sent:'تم الإرسال',failed:'تعذر الإرسال',not_configured:'لم يتم إعداد قناة الإرسال بعد'};
+      const delivery=document.getElementById('delivery-status');const labels={sent:'تم الإرسال',failed:'تعذر الإرسال',not_configured:'لم يتم إعداد قناة الإرسال بعد'};
       delivery.textContent='إشعار الإدارة عبر تيليجرام: '+(labels[data.delivery?.telegram]||'قيد التحقق')+' — البريد الإلكتروني: '+(labels[data.delivery?.admin_email]||'قيد التحقق')+'.';
-      resultCard.hidden=false;resultCard.scrollIntoView({behavior:'smooth',block:'center'});
-      form.reset();otherWrap.hidden=true;otherInput.required=false;
-    }catch(error){
-      alert(error.message==='TOO_MANY_REPORTS_TRY_LATER'?'وصلت إلى الحد المؤقت لإرسال البلاغات. حاول لاحقًا.':error.message);
-    }finally{sendButton.disabled=false;sendButton.textContent='إرسال البلاغ';}
+      resultCard.hidden=false;resultCard.scrollIntoView({behavior:'smooth',block:'center'});form.reset();otherWrap.hidden=true;otherInput.required=false;
+    }catch(error){alert(error.message==='TOO_MANY_REPORTS_TRY_LATER'?'وصلت إلى الحد المؤقت لإرسال البلاغات. حاول لاحقًا.':error.message);}
+    finally{sendButton.disabled=false;sendButton.textContent='إرسال البلاغ';}
   });
   whatsappButton.addEventListener('click',function(){
     if(!form.reportValidity())return;
     const categoryLabel=category.value==='other'?'أخرى — '+otherInput.value.trim():(categoryNames[category.value]||'غير محدد');
-    const subject=document.getElementById('subject').value.trim();
-    const details=document.getElementById('details').value.trim();
-    const contact=document.getElementById('contact').value.trim();
-    const message=[
-      'بلاغ دعم فني — AQX Favorites','','نوع المشكلة: '+categoryLabel,
-      'عنوان البلاغ: '+subject,'تفاصيل المشكلة:',details,
-      'وسيلة التواصل: '+(contact||'لم يتم إدخال وسيلة تواصل'),'',
-      'تم إعداد البلاغ من صفحة الدعم الفني في AQX Favorites.'
-    ].join('\n');
+    const subject=document.getElementById('subject').value.trim(),details=document.getElementById('details').value.trim(),contact=document.getElementById('contact').value.trim();
+    const message=['بلاغ دعم فني — AQX Favorites','','نوع المشكلة: '+categoryLabel,'عنوان البلاغ: '+subject,'تفاصيل المشكلة:',details,'وسيلة التواصل: '+(contact||'لم يتم إدخال وسيلة تواصل'),'','تم إعداد البلاغ من صفحة الدعم الفني في AQX Favorites.'].join('\n');
     window.open('https://wa.me/201027834695?text='+encodeURIComponent(message),'_blank','noopener,noreferrer');
   });
-  const trackForm=document.getElementById('track-form');
-  const trackResult=document.getElementById('track-result');
+  const trackForm=document.getElementById('track-form'),trackResult=document.getElementById('track-result');
   trackForm.addEventListener('submit',async function(event){
     event.preventDefault();if(!trackForm.reportValidity())return;
     const button=document.getElementById('track-submit');button.disabled=true;button.textContent='جارٍ البحث...';trackResult.textContent='';
     try{
-      const response=await fetch(API+'/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-        ticket_number:document.getElementById('track-ticket').value.trim(),
-        tracking_token:document.getElementById('track-token').value.trim()
-      }),cache:'no-store'});
-      const data=await response.json().catch(()=>({}));
-      if(!response.ok||data.ok!==true)throw new Error(data.error||'تعذر العثور على البلاغ.');
+      const response=await fetch(API+'/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket_number:document.getElementById('track-ticket').value.trim(),tracking_token:document.getElementById('track-token').value.trim()}),cache:'no-store'});
+      const data=await response.json().catch(()=>({}));if(!response.ok||data.ok!==true)throw new Error(data.error||'تعذر العثور على البلاغ.');
       const labels={received:'تم الاستلام',in_review:'قيد المراجعة',waiting_user:'بانتظار ردك',answered:'تم الرد',resolved:'تم الحل',closed:'مغلق'};
       const title=document.createElement('p');title.className='status-label';title.textContent='حالة البلاغ: '+(labels[data.ticket.status]||data.ticket.status);trackResult.appendChild(title);
       const heading=document.createElement('p');heading.textContent='رقم البلاغ: '+data.ticket.ticket_number;trackResult.appendChild(heading);
-      (data.replies||[]).forEach(reply=>{
-        const item=document.createElement('div');item.className='reply-item';
-        const author=document.createElement('strong');author.textContent=(reply.author_label||'فريق AQX')+' — '+new Date(reply.created_at).toLocaleString('ar-EG');
-        const body=document.createElement('p');body.textContent=reply.body;item.append(author,body);trackResult.appendChild(item);
-      });
+      (data.replies||[]).forEach(reply=>{const item=document.createElement('div');item.className='reply-item';const author=document.createElement('strong');author.textContent=(reply.author_label||'فريق AQX')+' — '+new Date(reply.created_at).toLocaleString('ar-EG');const body=document.createElement('p');body.textContent=reply.body;item.append(author,body);trackResult.appendChild(item);});
       if(!(data.replies||[]).length){const empty=document.createElement('p');empty.textContent='لم تتم إضافة رد حتى الآن. سيظهر الرد هنا عند تسجيله.';trackResult.appendChild(empty);}
     }catch(error){const message=document.createElement('p');message.className='error-message';message.textContent='تعذر عرض البلاغ. تأكد من رقم البلاغ ورمز المتابعة.';trackResult.appendChild(message);}
     finally{button.disabled=false;button.textContent='عرض حالة البلاغ';}
