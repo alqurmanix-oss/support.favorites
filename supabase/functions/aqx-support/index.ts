@@ -111,8 +111,26 @@ async function sendEmail(to: string, subject: string, text: string) {
 
 
 async function generateSupportReply(input: { name: string; category: string; subject: string; details: string; pageUrl: string }) {
+  const fallbackReply = () => {
+    const category = input.category.toLowerCase();
+    let guidance = "جرّب تحديث الصفحة ثم إعادة المحاولة، ودوّن وقت ظهور المشكلة وأي رسالة خطأ كما ظهرت.";
+    if (/account|حساب/.test(category)) guidance = "تأكد من استخدام وسيلة الدخول المرتبطة بحسابك، ولا تشارك كلمة المرور أو رموز التحقق مع أي شخص.";
+    else if (/saving|حفظ/.test(category)) guidance = "لا تحذف بيانات التطبيق أو المتصفح قبل التأكد من مزامنة محفوظاتك. جرّب إعادة تحميل الصفحة وتحقق من ظهور العنصر في المكتبة مرة أخرى.";
+    else if (/sync|مزامنة/.test(category)) guidance = "تحقق من اتصال الإنترنت، وافتح AQX Favorites من جديد، وانتظر اكتمال المزامنة قبل تكرار العملية.";
+    else if (/display|عرض/.test(category)) guidance = "أعد تحميل الصفحة، وتحقق من إعدادات تكبير المتصفح، ثم جرّب فتح الصفحة في تبويب جديد.";
+    else if (/performance|أداء/.test(category)) guidance = "أعد تحميل الصفحة وأغلق التبويبات غير الضرورية، ثم جرّب مرة أخرى مع تسجيل نوع الجهاز والمتصفح.";
+    else if (/search|بحث/.test(category)) guidance = "جرّب كلمة بحث أقصر أو عبارة مميزة من العنوان، وتأكد من إزالة أي مسافات زائدة.";
+    else if (/reviews|مراجع|تقييم/.test(category)) guidance = "تحقق من اتصال الإنترنت ثم أعد فتح صفحة التقييم. احتفظ بنص المراجعة قبل إعادة الإرسال لتجنب فقدانه.";
+    else if (/security|أمان/.test(category)) guidance = "لا تشارك كلمة المرور أو رموز التحقق أو روابط استعادة الحساب. إذا لاحظت نشاطًا غير معتاد، أمّن بريدك المرتبط بالحساب أولًا.";
+    else if (/notifications|إشعار/.test(category)) guidance = "راجع إعدادات الإشعارات في الجهاز والمتصفح، وتأكد من السماح بالإشعارات للموقع.";
+    else if (/other|أخرى/.test(category)) guidance = "أرسل لفريق الدعم نص رسالة الخطأ والخطوات التي سبقت ظهور المشكلة، مع نوع الجهاز والمتصفح إن أمكن.";
+    return "أهلًا " + input.name + "، شكرًا لإرسال بلاغك بعنوان: «" + input.subject + "».\n\n" +
+      "تم استلام البلاغ وحفظ تفاصيله، وهذا رد آلي أولي لمساعدتك:\n" + guidance + "\n\n" +
+      "إذا استمرت المشكلة، لا تكرر إرسال البلاغ؛ سيظل البلاغ المسجل متاحًا لفريق دعم AQX لمراجعته. يمكنك متابعة أي تحديث من صفحة متابعة البلاغ.\n\n" +
+      "تنبيه أمني: لا ترسل كلمات مرور أو رموز تحقق أو مفاتيح سرية.";
+  };
   const apiKey = Deno.env.get("AQX_TTS_API_KEY") || "";
-  if (!apiKey) return { ok: false as const, reason: "AQX_AI_CREDENTIALS_UNAVAILABLE" };
+  if (!apiKey) return { ok: true as const, answer: fallbackReply(), model: "aqx-support-automatic-fallback", fallback: true };
   const base = (Deno.env.get("AQX_TTS_BASE_URL") || "https://api.openai.com/v1").replace(/\/+$/, "");
   const headers = { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" };
   let model = Deno.env.get("AQX_SUPPORT_AI_MODEL") || Deno.env.get("AQX_CHAT_MODEL") || "";
@@ -135,7 +153,7 @@ async function generateSupportReply(input: { name: string; category: string; sub
     "لا تطلب كلمات مرور أو رموز تحقق أو مفاتيح سرية.",
     "إذا كانت المعلومات غير كافية، وضّح ما يلزم للتحقق وصعّد الحالة لفريق الدعم.",
     "لا تخترع روابط أو خصائص غير مؤكدة. لا تذكر أنك نموذج ذكاء اصطناعي."
-  ].join("\\n");
+  ].join("\n");
   const user = [
     "اسم المبلّغ: " + input.name,
     "التصنيف: " + input.category,
@@ -143,7 +161,7 @@ async function generateSupportReply(input: { name: string; category: string; sub
     "التفاصيل: " + input.details,
     "رابط الصفحة: " + (input.pageUrl || "غير محدد"),
     "اكتب ردًا مباشرًا للمستخدم يتضمن التشخيص الأولي والخطوة التالية."
-  ].join("\\n");
+  ].join("\n");
   try {
     const response = await fetch(base + "/chat/completions", {
       method: "POST", headers,
@@ -151,20 +169,29 @@ async function generateSupportReply(input: { name: string; category: string; sub
       signal: AbortSignal.timeout(25000)
     });
     if (!response.ok) {
-      console.error("support_ai_provider_http", response.status);
-      return { ok: false as const, reason: "AQX_AI_PROVIDER_REQUEST_FAILED" };
+      const errorBody = await response.text().catch(() => "");
+      let providerError: any = {};
+      try { providerError = JSON.parse(errorBody)?.error || {}; } catch {}
+      console.error("support_ai_provider_error", JSON.stringify({
+        status: response.status,
+        type: String(providerError.type || "").slice(0, 80),
+        code: String(providerError.code || "").slice(0, 100),
+        message: String(providerError.message || errorBody || "No provider error body").replace(/Bearer\s+\S+/gi, "Bearer [REDACTED]").slice(0, 500),
+        base_host: new URL(base).host,
+        model
+      }));
+      return { ok: true as const, answer: fallbackReply(), model: "aqx-support-automatic-fallback", fallback: true, provider_error: response.status };
     }
     const result = await response.json().catch(() => ({}));
     const raw = result?.choices?.[0]?.message?.content;
-    const answer = typeof raw === "string" ? raw.trim() : Array.isArray(raw) ? raw.map((x: any) => typeof x?.text === "string" ? x.text : "").join("\\n").trim() : "";
-    if (answer.length < 20) return { ok: false as const, reason: "AQX_AI_EMPTY_RESPONSE" };
-    return { ok: true as const, answer: answer.slice(0, 9000), model };
+    const answer = typeof raw === "string" ? raw.trim() : Array.isArray(raw) ? raw.map((x: any) => typeof x?.text === "string" ? x.text : "").join("\n").trim() : "";
+    if (answer.length < 20) return { ok: true as const, answer: fallbackReply(), model: "aqx-support-automatic-fallback", fallback: true };
+    return { ok: true as const, answer: answer.slice(0, 9000), model, fallback: false };
   } catch (error) {
     console.error("support_ai_request_error", error instanceof Error ? error.name : "unknown");
-    return { ok: false as const, reason: "AQX_AI_PROVIDER_UNAVAILABLE" };
+    return { ok: true as const, answer: fallbackReply(), model: "aqx-support-automatic-fallback", fallback: true };
   }
 }
-
 async function getTicketByAccess(ticketNumber: string, trackingToken: string) {
   if (!ticketNumber || trackingToken.length < 24) throw new ApiError("TRACKING_DETAILS_REQUIRED", 400);
   const { data, error } = await db.from("aqx_favorites_support_tickets").select("id,ticket_number,reporter_name,category,custom_category,subject,details,page_url,status,ai_status,created_at,updated_at,last_replied_at")
@@ -220,7 +247,7 @@ Deno.serve(async (req: Request) => {
       let autoResponse: { status: string; reason?: string; reply_id?: string } = { status: "escalated", reason: "AQX_AI_PROVIDER_UNAVAILABLE" };
       if (aiResult.ok) {
         const { data: aiReply, error: aiReplyError } = await db.from("aqx_favorites_support_replies").insert({
-          ticket_id: ticket.id, author_type: "system", author_label: "مساعد AQX الذكي",
+          ticket_id: ticket.id, author_type: "system", author_label: aiResult.fallback ? "الرد الآلي الأولي من AQX Support" : "مساعد AQX الذكي",
           body: aiResult.answer, visibility: "public"
         }).select("id,body,created_at").single();
         if (!aiReplyError && aiReply) {
