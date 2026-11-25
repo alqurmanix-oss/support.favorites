@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#6d4bd1">
+<meta name="color-scheme" content="light">
+<meta name="referrer" content="no-referrer">
+<title>استعلام الشكاوى — AQX Favorites</title>
+<style>
+:root{font-family:Tahoma,Arial,sans-serif;color:#28243a;background:#f7f6fb}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;max-width:100%;min-height:100%;overflow-x:hidden}
+body{background:#f7f6fb}
+header{width:100%;padding:14px 18px;background:#fff;border-bottom:1px solid #ece9f3;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.brand{font-size:17px;font-weight:800;color:#6847c7}.tag{font-size:11px;color:#817b91}
+main{width:100%;max-width:680px;margin:18px auto;padding:0 12px}
+.card{width:100%;background:#fff;border:1px solid #ece9f3;border-radius:16px;padding:18px;box-shadow:0 5px 18px rgba(48,34,91,.045)}
+h1{font-size:21px;margin:7px 0 12px}.eyebrow{font-size:10px;color:#7654db;font-weight:800}
+p{font-size:12px;color:#777187;line-height:1.8}
+label{display:block;font-size:12px;font-weight:700;margin:11px 0 6px}
+.lookup-row{display:flex;gap:8px;align-items:stretch}
+input{display:block;flex:1;width:100%;max-width:100%;min-width:0;padding:12px;border:1px solid #e5e1ed;border-radius:9px;font:inherit;font-size:12px;direction:ltr;text-align:left}
+input:focus{outline:3px solid rgba(143,115,242,.2);border-color:#9a82e5}
+.primary{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:116px;border:0;border-radius:9px;padding:10px 14px;background:#6847c7;color:#fff;font-size:12px;font-weight:800}
+.primary svg{width:17px;height:17px;flex:none}
+button{font:inherit;cursor:pointer}
+button:disabled{opacity:.6;cursor:wait}
+.hint{margin:7px 0 0;font-size:11px}
+.summary{margin-top:16px;padding:14px;border:1px solid #e7e1f1;border-radius:12px;background:#faf9fe}
+.summary h2{font-size:16px;margin:0 0 9px}
+.meta{display:flex;flex-wrap:wrap;gap:7px 14px;font-size:10px;color:#716a81}
+.status{display:inline-block;border-radius:30px;padding:6px 10px;background:#eee9f8;color:#5637b8;font-size:11px;font-weight:800}
+.detail-title{font-size:11px;font-weight:800;color:#514a62;margin:13px 0 5px}
+.detail-body{white-space:pre-wrap;overflow-wrap:anywhere;background:#fff;border:1px solid #eeeaf4;border-radius:9px;padding:11px;font-size:12px;line-height:1.8;color:#3d374b}
+.replies{margin-top:15px}.replies h2{font-size:15px;margin:0 0 8px}
+.reply{padding:11px 0;border-top:1px solid #eeeaf4}
+.reply strong{font-size:11px;color:#5637b8}.official-icon{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;margin-inline-start:4px;border-radius:50%;background:#6847c7;color:#fff;font:800 9px/1 Arial;vertical-align:middle}
+.reply p{white-space:pre-wrap;overflow-wrap:anywhere;color:#393449;margin:6px 0 0}
+.empty{padding:10px;border-radius:9px;background:#faf9fc}
+.error{color:#b42318;background:#fff6f5;border:1px solid #f3d0cc;border-radius:9px;padding:10px}
+.back{display:inline-block;margin-top:14px;color:#6847c7;text-decoration:none;font-size:11px;font-weight:800}
+footer{text-align:center;padding:14px;color:#a09bad;font-size:10px}
+[hidden]{display:none!important}
+@media(max-width:460px){.lookup-row{flex-direction:column}.primary{width:100%;min-height:42px}}
+</style>
+</head>
+<body>
+<header><div class="brand">AQX Favorites</div><div class="tag">الدعم الفني · استعلام الشكاوى</div></header>
+<main><section class="card">
+<div class="eyebrow">AQX · SUPPORT CENTER</div>
+<h1>استعلام الشكاوى</h1>
+<p>أدخل رمز المتابعة الخاص بالشكوى لعرض بياناتها وحالتها وردود فريق الدعم.</p>
+<form id="lookup-form" novalidate>
+<label for="tracking-token">رمز المتابعة</label>
+<div class="lookup-row">
+<input id="tracking-token" name="tracking_token" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="120" placeholder="أدخل رمز المتابعة" required>
+<button id="lookup-button" class="primary" type="submit" aria-label="استعلام">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"></circle><path d="m16 16 5 5"></path></svg>
+<span>استعلام</span>
+</button>
+</div>
+<p class="hint">يمكنك نسخ الرمز من رسالة نجاح إرسال الشكوى.</p>
+</form>
+<p id="lookup-error" class="error" hidden role="alert"></p>
+<section id="ticket-view" class="summary" hidden aria-live="polite">
+<h2 id="ticket-subject">تفاصيل الشكوى</h2>
+<div class="meta">
+<span id="ticket-number"></span>
+<span id="ticket-date"></span>
+<span id="ticket-reporter"></span>
+<span id="ticket-category"></span>
+<span id="ticket-status" class="status"></span>
+</div>
+<div class="detail-title">وصف الشكوى</div><div id="ticket-details" class="detail-body"></div>
+<div class="replies"><h2>ردود فريق الدعم</h2><div id="reply-list"></div></div>
+</section>
+<a class="back" href="https://support.favorites.alqurmanix.com/report.html">← العودة إلى صفحة الإبلاغ عن مشكلة</a>
+</section></main>
+<footer>© AQX Favorites</footer>
+<script>
+(function(){
+'use strict';
+const API='https://vuszqzgldbsscuxdfhdz.supabase.co/functions/v1/aqx-support';
+const form=document.getElementById('lookup-form');
+const tokenInput=document.getElementById('tracking-token');
+const button=document.getElementById('lookup-button');
+const view=document.getElementById('ticket-view');
+const error=document.getElementById('lookup-error');
+const labels={received:'لم يتم الرد',in_review:'مراجعة',waiting_user:'بانتظار ردك',answered:'تم الرد',resolved:'تم الحل',closed:'مغلق'};
+const categories={account:'التسجيل أو تسجيل الدخول',saving:'حفظ الروابط أو حذفها',sync:'المزامنة أو نقل المحفوظات',display:'عرض الصفحة أو التنسيق',performance:'البطء أو الأداء',search:'البحث أو الوصول إلى الروابط',reviews:'التقييمات أو المراجعات',security:'الأمان أو الخصوصية',notifications:'الإشعارات',other:'أخرى'};
+function setText(id,value){document.getElementById(id).textContent=value||''}
+function showReplies(replies){
+ const list=document.getElementById('reply-list');list.replaceChildren();
+ if(Array.isArray(replies)&&replies.length){
+  replies.forEach(item=>{
+   const article=document.createElement('article');article.className='reply';
+   const author=document.createElement('strong');
+   const systemReply=item.author_type==='system'||(item.author_label||'').includes('الرد الآلي');
+   if(systemReply){author.textContent='AQX Support';const mark=document.createElement('span');mark.className='official-icon';mark.textContent='✓';mark.setAttribute('aria-label','AQX موثّق');author.append(mark)}
+   else author.textContent=item.author_label||'فريق AQX';
+   author.append(document.createTextNode(' · '+(item.created_at?new Date(item.created_at).toLocaleString('ar-EG'):'')));
+   const body=document.createElement('p');body.textContent=item.body||'';
+   article.append(author,body);list.append(article);
+  });
+ }else{const empty=document.createElement('p');empty.className='empty';empty.textContent='لم يضف فريق الدعم ردًا حتى الآن. ستظهر الردود هنا عند إضافتها.';list.append(empty)}
+}
+form.addEventListener('submit',async event=>{
+ event.preventDefault();
+ const token=tokenInput.value.trim();
+ error.hidden=true;view.hidden=true;
+ if(token.length<24){error.textContent='أدخل رمز متابعة صحيحًا.';error.hidden=false;tokenInput.focus();return}
+ button.disabled=true;button.querySelector('span').textContent='جارٍ الاستعلام...';
+ try{
+  const response=await fetch(API+'/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tracking_token:token}),cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer'});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok||data.ok!==true||!data.ticket)throw new Error(response.status===404?'لم نعثر على شكوى بهذا الرمز. راجع الرمز وحاول مرة أخرى.':'تعذر الاستعلام الآن. تحقق من الاتصال وحاول مرة أخرى.');
+  const t=data.ticket;
+  setText('ticket-subject',t.subject||'شكوى دعم فني');
+  setText('ticket-number','رقم البلاغ: '+(t.ticket_number||''));
+  setText('ticket-date',t.created_at?'تاريخ الإرسال: '+new Date(t.created_at).toLocaleDateString('ar-EG'):'');
+  setText('ticket-reporter',t.reporter_name?'مقدم الشكوى: '+t.reporter_name:'');
+  const category=t.category==='other'?(t.custom_category?'أخرى — '+t.custom_category:'أخرى'):(categories[t.category]||t.category||'');
+  setText('ticket-category',category?'نوع المشكلة: '+category:'');
+  setText('ticket-status',labels[t.status]||t.status||'قيد المراجعة');
+  setText('ticket-details',t.details||'لا توجد تفاصيل إضافية.');
+  showReplies(data.replies);
+  view.hidden=false;
+ }catch(e){error.textContent=e.message||'حدث خطأ أثناء الاستعلام عن الشكوى.';error.hidden=false}
+ finally{button.disabled=false;button.querySelector('span').textContent='استعلام'}
+});
+})();
+</script>
+</body>
+</html>
