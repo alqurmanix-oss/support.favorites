@@ -406,6 +406,8 @@ var atOptions = {
           <h4>تم إرسال الشكوى بنجاح 💜</h4>
           <p>احتفظ ببيانات البلاغ للرجوع إليه وقراءة رد فريق الدعم.</p>
           <div class="ticket-line"><strong>رقم البلاغ:</strong><span id="result-ticket" class="ticket-value"></span><button class="copy" id="copy-ticket" type="button">نسخ</button></div>
+          <div class="ticket-line"><strong>رمز المتابعة:</strong><span id="result-token" class="ticket-value"></span><button class="copy" id="copy-token" type="button">نسخ</button></div>
+          <p class="help">احتفظ برمز المتابعة؛ ستحتاج إليه عند استخدام صفحة «استعلام الشكاوى» من صندوق الوارد.</p>
         </section>
 
         <a class="back" href="https://favorites.alqurmanix.com/guest/" rel="noopener noreferrer" data-say="جارٍ العودة إلى AQX Favorites.">العودة إلى AQX Favorites ←</a>
@@ -601,6 +603,7 @@ category.addEventListener('change',()=>{
   if(category.value){Voice.say('تم اختيار: '+(show?'أخرى':category.options[category.selectedIndex].text)+'. الآن اكتب عنوان الشكوى.');Sound.play('tap')}
 });
 $('#copy-ticket').addEventListener('click',()=>copyText($('#result-ticket').textContent));
+$('#copy-token').addEventListener('click',()=>copyText($('#result-token').textContent));
 detailsEl.addEventListener('input',()=>{$('#count').textContent=detailsEl.value.length;setErr('details')});
 subjectEl.addEventListener('input',()=>setErr('subject'));
 otherInput.addEventListener('input',()=>setErr('other'));
@@ -679,6 +682,7 @@ form.addEventListener('submit',async event=>{
     if(!okStr(d.ticket_number,80)||!okStr(d.tracking_token,600))throw new Error('FAILED');
     rateHit();
     $('#result-ticket').textContent=d.ticket_number;
+    $('#result-token').textContent=d.tracking_token;
     const items=readTickets();items.unshift({ticket_number:d.ticket_number,tracking_token:d.tracking_token,subject,status:'received',created_at:d.created_at||new Date().toISOString()});saveTickets(items);
     renderTable();result.hidden=false;
     form.reset();otherWrap.hidden=true;otherInput.required=false;$('#count').textContent='0';
